@@ -65,7 +65,7 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 
 ## Features
 
-- An extended Loose Coupling between Controllers/Controller Views. 
+- An extended Loose Coupling between Radixx Dispatcher and Controllers/Controller Views. 
 - A transparent way in separating mutation and asynchronousity in application state.
 - No need to **<q>emit</q>** change events from within a store registration callback.
 - No elaborate definition **Action Creators** &amp; **Stores** (Write less code).
@@ -504,54 +504,36 @@ angular.module("appy.todos", [
 					area.put(item);
 	});
 	
-	var shoeView = new Ractive({
-		el:'#root', /* id of mount point {DOM element} for ractive view  */
-		template: '#tpl-app', /* id of {SCRIPT element} used to hold HTML view */
-		data: {
-			skills: (store.getState() || []),
-			filter:function(item){
-				var skills = this.get('skills');
-			}
+	var shoeComponent = Ractive.extend({
+	
+  		template: '#tpl-app', /* id of {SCRIPT element} used to hold HTML view */
+		beforeInit:function(){
+			store.setChangeListener(this.onChange);
 		},
-		events:{
-			'select-done':(function(w){
-
-				w.document.onkeypress = function(){} 
-
-				return function(node, ){
-					
-					if(true){
-						fire({
-							node:node,
-							data:
-						});
-					}
-				};	
-
-			}(this)),
-			'ready':(function(){ 
-
-				return function(node){
-
-					if(true){
-						fire({
-							node:node,
-							data:
-						});
-					}
-				};		
-			}())
+  		init: function () {
+			var that = this;
+    			this.on('change', function data) {
+      				action.addItem(data);
+    			});
+			
+			this.on('teardown', function(){
+				store.unsetChangeListener(that.onChange);
+			});
+  		},
+  		data: {
+    			todos: (store.getState() || [])
+  		},
+		onChange:function(){
+			this.set('todos', store.getState());
 		}
 	});
-
-	shoeComponent.on('ready', function(event, data){
-
-		store.setChangeListener(onChange);
+	
+	var shoeView = new shoeComponent({
+		el:'#root', /* id of mount point {DOM element} for ractive view  */
 	});
 
-	shoeComponent.on('select-done', function(event, data){
-
-		action.addItem(data);
+	shoeView.on('update', function(data){	
+		console.log("updated!");
 	});
 ```
 
