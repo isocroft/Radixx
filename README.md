@@ -1,6 +1,6 @@
 # Radixx
 
-This is a simple library that implements the _Facebook_ **Flux Architecture** with a twist to how the entire application state is managed and changed/updated. 
+This is a simple library that implements the _Facebook_ **Flux Architecture** with a twist to how the entire application state is managed and changed/updated. It resembles **Redux** in a lot of ways. 
 
 ```html
 <!DOCTYPE html>
@@ -14,8 +14,11 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 				mutations are completely done on the state */
 			console.log(JSON.stringify(app_state)); 
 		});
-
+		
+		/* creating an action - multiple actions can be created for a real-life application */
 		var action = r.createAction({'loadTodos':'LOAD_TODOS'});
+		
+		/* creating a store - multiple stores can be created for a real-life application */
 		var store = r.createStore('todos', function(action, area){
 						var todos; 
 						switch(action.actionType){
@@ -65,7 +68,8 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 
 ## Features
 
-- An extended Loose Coupling between Radixx Dispatcher and Controllers/Controller Views. 
+- An extended Loose Coupling between Radixx Dispatcher and Controllers/Controller Views.
+- Configure the order in which the <q>dispacth</q> triggers the store callbacks.
 - A transparent way in separating mutation and asynchronousity in application state.
 - No need to **<q>emit</q>** change events from within a store registration callback.
 - No elaborate definition **Action Creators** &amp; **Stores** (Write less code).
@@ -119,7 +123,8 @@ angular.module("appy", [
 // Domain-level Module
 
 angular.module("appy.todos", [
-			'ngSanitize'
+			'ngSanitize',
+			'pouchdb' /* using angular-pouch module */
 ])
 
 .factory("$todoAction", ['$ngRadixx',
@@ -132,6 +137,7 @@ angular.module("appy.todos", [
 		'removeTodo':'REMOVE_TODO'
 	};
 	
+	/* create an action object with all necessary action names */
 	return $ngRadixx.createAction(
 		action_mappings
 	);
@@ -166,17 +172,31 @@ angular.module("appy.todos", [
 	);
 }) 
 
-.factory('$fetch', ['$http', function($http){
+.factory('$fetch', ['$http', '$q', 'pouchDB', function($http, $q, pouchDB){
 	
 	return: {
 		getTodos:function(url){
-			return $http.get(url);
+			var localdb = pouchDB('todos');
+			return localdb.allDocs({
+				include_docs:true,
+				attachments:true
+			}).then(function(res){
+				return res.rows.forEach(function(row){
+					return row.doc;
+				});
+			}).catch(function(err){
+				if(err.name != 'conflict'){
+					return $http.get(url);
+				}else{
+					return [err];
+				}
+			});
 		}	
 	}
 }]);
 
-.controller("TodoCtrl", ['$scope', '$todoAction', '$todoStore', '$pouchDB', '$fetch'
-	function($scope, $todoActions, $todoStore, $pouchDB, $fetch){
+.controller("TodoCtrl", ['$scope', '$todoAction', '$todoStore', 'pouchDB', '$fetch'
+	function($scope, $todoActions, $todoStore, pouchDB, $fetch){
 
 		// get the 'key' for the {todos} store in the application state
 		var title = $todoStore.getTitle(), 
@@ -185,28 +205,34 @@ angular.module("appy.todos", [
 
 				return function(){
 					var data = this.getState();
-
+					data._id = (new Date)*1;
+					
 					/* store change listeners stores data in local DB */	
 					db.put(data) 
-					.then(function(data){
+					.then(function(res){
 
-							/* Assuming to use the Pusher Realtime backend service */ 
+						/* Assuming to use the Pusher Realtime backend service */ 
+						if(res.ok){
 							return $http({
-								url:'http://localhost:3248/broadcast/pusher',method:'POST',
+								url:'http://localhost:3248/broadcast/pusher',
+								method:'POST',
 								data:data
 							}); 
+						}else{
+							throw new Error("Not OK => id:"+res.id+", rev:"+res.rev);
+						}
 					})
 					.catch(function(err){ 
 							console.log('App Error: ', err);
 					});
 				};
 
-		}($pouchDB('todos')));
+		}(pouchDB('todos')));
 
 
-		/* loading todos from server */
+		/* loading todos from server DB (or local DB) */
 		$fetch.getTodos('http://localhost:4002/todos').then(
-			$todoAction.loadTodos
+			$todoAction.loadTodos.bind($todoAction)
 		);
 
 		$scope.$on('$appReady', function(event, data){
@@ -360,7 +386,30 @@ angular.module("appy.todos", [
 			});
 		},
 		_deepEqual: function(original, copy){
+				function check (x, y) {
+					  if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+					    if (Object.keys(x).length != Object.keys(y).length)
+					      return false;
 
+					    for (var prop in x) {
+					      if (({}).hasOwnProperty.call(y, prop))
+					      {  
+						if (! check(x[prop], y[prop]))
+						  return false;
+					      }
+					      else
+						return false;
+					    }
+
+					    return true;
+					  }
+					  else if (x !== y)
+					    return false;
+					  else
+					    return true;
+				};
+				
+				return check(original, copy);
 		},
 		_onStoreChange:function(){
 			
@@ -480,7 +529,30 @@ angular.module("appy.todos", [
 			this.setState({loading:false});
 		},
 		_deepEqual: function(original, copy){
+				function check (x, y) {
+					  if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+					    if (Object.keys(x).length != Object.keys(y).length)
+					      return false;
 
+					    for (var prop in x) {
+					      if (({}).hasOwnProperty.call(y, prop))
+					      {  
+						if (! check(x[prop], y[prop]))
+						  return false;
+					      }
+					      else
+						return false;
+					    }
+
+					    return true;
+					  }
+					  else if (x !== y)
+					    return false;
+					  else
+					    return true;
+				};
+				
+				return check(original, copy);
 		}
 	});
 ```
