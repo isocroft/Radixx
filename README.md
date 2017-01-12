@@ -181,7 +181,7 @@ angular.module("appy.todos", [
 				include_docs:true,
 				attachments:true
 			}).then(function(res){
-				return res.rows.forEach(function(row){
+				return res.rows.map(function(row){
 					return row.doc;
 				});
 			}).catch(function(err){
