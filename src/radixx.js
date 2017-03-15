@@ -64,9 +64,9 @@ _each = function (obj, iterator, context){
 _curry = function (func, args, context){
 	return function(){
 		var _args = Slc.call(arguments);
-		return func.apply(context, _args.push(_args, [].concat(args))); 
+		return func.apply(context, args.concat(_args)); 
 	}
-},
+};
 
 // Store constructor
 Store = (function(){
