@@ -185,7 +185,7 @@ angular.module("appy.todos", [
 					return row.doc;
 				});
 			}).catch(function(err){
-				if(err.name != 'conflict'){
+				if(err.name != 'conflict'){ // 'not_found'
 					return $http.get(url);
 				}else{
 					return [err];
@@ -302,7 +302,7 @@ angular.module("appy.todos", [
 				], function(){
 					
 					/* custom pub/sub object for communicating 
-						with other stores */
+						with other stores (not defined here) */
 					E.emit('clothes', area.get());
 				});
 			break;
@@ -329,7 +329,7 @@ angular.module("appy.todos", [
 		componentWillUnmount:function(){
 
 			/* unsubscribe store change listener */
-			store.unsetChangeListener(this._onStoreChange);
+			store.unsetChangeListener(this._onStoreChange.bind(this));
 		},
 		componentDidMount:function(){
 
@@ -337,7 +337,7 @@ angular.module("appy.todos", [
 			socket.join('losers');
 
 			/* unsubscribe store change listener */
-			store.setChangeListener(this._onStoreChange);
+			store.setChangeListener(this._onStoreChange.bind(this));
 		},
 		shouldComponentUpdate:function(nextProps, nextState){
 
@@ -480,11 +480,13 @@ angular.module("appy.todos", [
 				/* Assuming use of socket.io library - joining a room */
 				socket.join('losers');
 
-				store.setChangeListener(this._onChange);
-		},
-		componentDidMount: function(){
+				store.setChangeListener(this._onChange.bind(this));
 
-			Radixx.onDispatch(this._onDispatch);
+				Radixx.onDispatch(this._onDispatch.bind(this));
+		},
+		componentWillUnmount:function(){
+
+				store.unsetChangeListener(this._onChange.bind(this));
 		},
 		render:function(){
 
@@ -580,7 +582,7 @@ angular.module("appy.todos", [
 	
   		template: '#tpl-app', /* id of {SCRIPT element} used to hold HTML view */
 		beforeInit:function(){
-			store.setChangeListener(this.onChange);
+			store.setChangeListener(this.onChange.bind(this));
 		},
   		init: function () {
 			var that = this;
