@@ -1,11 +1,14 @@
  /*!
   * @lib: Radixx
-  * @version: 0.0.1
+  * @version: 0.0.2
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
+  * All Rights Reserved 2016 - 2017.
+  * Use, reproduction, distribution, and modification of this code is subject to the terms and
+  * conditions of the MIT license, available at http://www.opensource.org/licenses/mit-license.php
   *
-  * @desc: Implementation of Facebook Flux Architecture with a Twist.
+  * @desc: Implementation of Facebooks' Flux Architecture with a Twist.
   */
 
  !function(root, factory){
@@ -18,9 +21,45 @@
  		window['Radixx'] = factory(root);
  	}
 
- }(this, function(wind){ 
+ }(this, function(wind, undefined){ 
 
-	// 'use strict';  Can't use strict mode cos i wish to use {void 0} to check nulled/undefined vars
+var Hop = ({}).hasOwnProperty,
+
+Slc = ([]).slice,
+
+_each = function (obj, iterator, context){
+	
+	if(context === undefined){
+
+		context = null;
+	}
+
+	for(var prop in obj){
+		if(Hop.call(obj, prop)){
+			iterator.call(context, obj[prop], prop);
+		}
+	}
+},
+
+_curry = function (func, args, context){
+
+	return function(){
+		var _args = Slc.call(arguments);
+		return func.apply(context, args.concat(_args)); 
+	};
+};
+
+Array.prototype.forEach = Array.prototype.forEach || function(fn, cxt){
+
+		return _each(this, fn, cxt);
+};
+
+Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */){
+
+		return _curry(this, [].slice(arguments, 1), cxt); 
+}
+
+// 'use strict';  Can't [use strict] mode cos i wish to use {void 0} to check nulled/undefined vars
 
 Object.keys = Object.keys || function (fu){
     if (typeof (fu) != 'object' 
@@ -29,7 +68,7 @@ Object.keys = Object.keys || function (fu){
     }
     var j = [];
     for (var k in fuc) {
-          if(hOwn.call(fuc, k)) {
+          if(Hop.call(fuc, k)) {
                 j.push(k)
           }
     }
@@ -39,7 +78,7 @@ Object.keys = Object.keys || function (fu){
     if(l) {
          for (var n = 0; n < m.length; n++) {
                 var o = m[n];
-                if(hOwn.call(fuc, o)) {
+                if(Hop.call(fuc, o)) {
                      j.push(o);
                 }
          }
@@ -47,38 +86,58 @@ Object.keys = Object.keys || function (fu){
     return j;
 };
 
-
-
-var Hop = ({}).hasOwnProperty,
-
-Slc = ([]).slice,
-
-_each = function (obj, iterator, context){
-	for(var prop in obj){
-		if(Hop.call(obj, prop)){
-			iterator.call(context, obj[prop], prop);
-		}
-	}
-},
-
-_curry = function (func, args, context){
-	return function(){
-		var _args = Slc.call(arguments);
-		return func.apply(context, args.concat(_args)); 
-	}
-};
-
 // Store constructor
 Store = (function(){
 
+	var requirementTypes = ['graph-ql'];
+
+	var serviceRequirementsMap = {};
 	
 	return function(title){
 
+		var that = this;
+
 		this.getTitle = function(){
+
 			return title;
 		};
 
+		this.toJSON = function(){
+
+			return {title:title};
+		};
+
+		this.reactjs = {};
+
+		this.reactjs.mixin = ((function(){
+		
+			/* @TODO: trivial testing for ReactJS */
+
+			this.willMount = function(){
+
+				that.setChangeListener(this.forceUpdate.bind(this));
+			}
+
+			this.willUnMount = function(s){
+
+				that.unsetChangeListener(this.forceUpdate.bind(this));
+			};
+
+			this.getProps = function(){
+
+				return that.getState();
+			};
+
+			return {
+				componentWillMount:this.willMount,
+				componentWillUnMount:this.willUnMount,
+				getDefaultProps:this.getProps
+			};
+
+		}).call(this.reactjs));
+
 		this.toString = function(){
+
 			return "[object RadixxStore]";
 		};
 
@@ -92,10 +151,17 @@ Store = (function(){
 	return function(id){
 
 		this.getId = function(){
+
 			return id;
 		};
 
+		this.toJSON = function(){
+
+			return {id:id};
+		};
+
 		this.toString = function(){
+
 			return "[object RadixxAction]";
 		};
 	}
@@ -147,13 +213,13 @@ Store = (function(){
 
              fire.$decline = false;
 			 
-	if(options.savedData){
-		if(options.unpack){
-		    // clear our {pending} list and free up some memeory!!
-			pending.length = 0; // saves the reference {pending} and does not replace it!
-		}
-	}
-};
+			 if(options.savedData){
+				if(options.unpack){
+				    // clear our {pending} list and free up some memeory!!
+					pending.length = 0; // saves the reference {pending} and does not replace it!
+				}
+			 }
+	};
 	
 	return {
     add:function(){
@@ -235,28 +301,28 @@ Futures = function(){
     },
     self = this,
     keys = Object.keys(defTracks),
-    setter = function(dx, arr,  forPromise){
-        var drop = (dx != "notify");
-        if(!arr.length && !forPromise) return defTracks[dx][2].fireWith;
+    setter = function(fnName, arr,  forPromise){
+        var drop = (fnName != "notify");
+        if(!arr.length && !forPromise) return defTracks[fnName][2].fireWith;
         return (!forPromise)? function(){
             if(self.state >= 0 && self.state <=1){
-                self.state = futuresStates[defTracks[dx][1]];
+                self.state = futuresStates[defTracks[fnName][1]];
             }
-            defTracks[dx][2].fireWith(self === this? self : this, [].slice.call(arguments));
+            defTracks[fnName][2].fireWith(self === this? self : this, [].slice.call(arguments));
             if(drop){
 			    defTracks[arr[0]][2].disable();
                 defTracks[arr[1]][2].disable();
-			    switch(dx){	
+			    switch(fnName){	
 				   case "reject":
 				   case "resolve":
-				      self.state = futuresStates[defTracks[dx][1]];
+				      self.state = futuresStates[defTracks[fnName][1]];
 				   break;
 			    }	
 			}
             return true;
         } : function(){
             if(self.state >= 0 && self.state <=1){
-                defTracks[dx][2].add.apply(self, Slc.call(arguments));
+                defTracks[fnName][2].add.apply(self, Slc.call(arguments));
             }
             return self;
         } ;
@@ -268,6 +334,7 @@ Futures = function(){
     
     
     // using a closure to define a function on the fly...
+
     for(d in defTracks){
         if(Hop.call(defTracks, d)){
             keys.splice(i++, 1);
@@ -277,7 +344,6 @@ Futures = function(){
             keys = ax.slice();
         }
     }
-    
     
     promise.state = futuresStates.STARTED;
 	
@@ -303,7 +369,11 @@ Futures = function(){
                      item = (typeof item == "function") && item;
                      self[defTracks[keys[i]][0]](function(){
 					       var rt;
-					       try{ // Promises/A+ specifies that errors should be conatined and returned as value of rejected promise
+					       try{ 
+					       		/*
+					       			Promises/A+ specifies that errors should be contained
+					       			and returned as value of rejected promise
+					       		*/
                                rt = item && item.apply(this, arguments);
                            }catch(e){ 
 						       rt = this.reject(e);
@@ -346,12 +416,6 @@ Futures = function(){
 
 	    mode = win.document.documentMode || 0, 
 
-	/* @TODO: Implement undo actions for all store data
-
-	    undoStack = [
-		
-	], */
-
 	    watchers = [
 
 	],
@@ -373,7 +437,8 @@ Futures = function(){
 	    dispatchRegistry = {
 		
 	},
-	    getObjectPrototype = function(obj){
+    
+    getObjectPrototype = function(obj){
 		if('getPrototypeOf' in Object){
 			return Object.getPrototypeOf(obj);
 		}else if('__proto__' in obj){
@@ -388,10 +453,47 @@ Futures = function(){
 		return obj;
 	},
 
-		isNullOrUndefined = function(obj){
+	isNullOrUndefined = function(obj){
 			return (obj === void 0);
 	},
-	   getNormalized = function(val){
+
+	operationOnStoreSignal = function(fn, queueing, action, area) { 
+
+	    // first, retrieve the very first state data and cache it
+	    if(fn.$$history.length == 1 
+		&& !fn.$$initData){
+
+	 		fn.$$initData = fn.$$history[0];
+	    }		
+
+	    // second, make sure that there is no future state to forth on	
+
+	    fn.$$history = fn.$$history.slice(0, fn.$$historyIndex + 1);
+	    
+	    // create a new state of the store data by applying
+	    // a given store callback function to the current head
+	    var newStoreState = fn.call(queueing, action, area);
+
+		if(!newStoreState){
+			
+			throw new TypeError("Radixx: Application State unavailable after signal to Dispatcher");		
+
+			return;
+		}
+	    
+	    // add the new state to the history list and increment
+	    // the index to match in place
+	    var len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
+	    fn.$$historyIndex++;
+
+	    if(fn.$$history.length > 15){ // can't undo/redo (either way) more than 15 moves at any time
+
+	  		fn.$$history.unshift();
+	    }
+	   
+	},
+	  
+    getNormalized = function(val){
 
 	   	if(isNullOrUndefined(val) || val === "null")
 	   		 return null;
@@ -402,7 +504,8 @@ Futures = function(){
 			return String(val);
 		}
 	},
-	   setNormalized = function(val){
+	   
+   	setNormalized = function(val){
 
 	   	if(isNullOrUndefined(val)) 
 	   		val = null;
@@ -414,7 +517,8 @@ Futures = function(){
 			return String(val);
 		}
 	},
-	   getAppState = function(){
+	   
+    getAppState = function(){
 
 		var appStateData = {}, key;		
 
@@ -426,7 +530,8 @@ Futures = function(){
 
 		return appStateData;
 	},
-	   Area = function(key){
+	   
+    Area = function(key){
 
 		this.put = function(value){
 			
@@ -435,14 +540,19 @@ Futures = function(){
 				sessStore.$$key = key;
 				sessStore.constructor.$$currentStoreType = sessStore;
 			}
-			return sessStore.setItem(key, setNormalized(value));
+			
+			sessStore.setItem(key, setNormalized(value));
+
+			return value;
 		};
 
 		this.get = function(){
+
 			return getNormalized(sessStore.getItem(key)) || null;
 		};
 
 		this.del = function(){
+
 			return sessStore.removeItem(key);
 		};
 
@@ -450,7 +560,9 @@ Futures = function(){
 	},
 
 	handlePromises = function(){
+
 		var promise = null, state = getAppState();
+
 		for(var title in _promises){
 			if(Hop.call(_promises, title)){
 				promise = _promises[title];
@@ -460,6 +572,8 @@ Futures = function(){
 				delete _promises[title];
 			}
 		}
+
+		waitQueue.length = 0;
 
 		for(var watcher in watchers){
 			if(Hop.call(watchers, watcher)){
@@ -511,11 +625,38 @@ Futures = function(){
 		}
 	}
 
-	Dispatcher.prototype.register = function(title, observer){
-		
-			observer.$$store_listeners = [];
-			observers[title] = observer;
+	Dispatcher.prototype.getRegistration = function(title){
 
+		if(Hop.call(observers, title)){
+			return observers[title];
+		}
+
+		return {};
+	}
+
+	Dispatcher.prototype.register = function(title, observer, defaultStoreContainer){
+		
+			if(Hop.call(observers, title)){
+				if('$$history' in observers[title]
+					 && typeof observer.$$history == 'undefined'){
+					if(!stores[title]){ // If the store doesn't have any change listeners registered
+						
+						throw new Error("Radixx: Cannot Overwrite existing store registration");
+					
+						return;
+					}
+					observer.$$history = observers[title].$$history;
+					observer.$$historyIndex = observers[title].$$historyIndex;
+					observer.$$store_listeners = observers[title].$$store_listeners;
+					observers[title] = observer;
+				}
+			}else{
+				observer.$$store_listeners = [];
+				observer.$$history = [(!!defaultStoreContainer ? defaultStoreContainer : [])];
+				observer.$$historyIndex = 0;
+				observers[title] = observer;
+			}
+				
 			return true;
 	}
 
@@ -549,31 +690,45 @@ Futures = function(){
 	Dispatcher.prototype.signal = function(action){ 
 
 		// Pass this on to the event queue [await]
-		win.setTimeout(handlePromises, 0); 
+		win.setTimeout(handlePromises, 0);
 
 		// Some validation - just to make sure
-		if(!(action.source in dispatchRegistry)){
+		if(!(action.source in dispatchRegistry) 
+			/*|| action.source != 'hydrate'*/){
 			return;
 		}
 
 		for(var title in observers){
 			if(Hop.call(observers, title)){
-				observers[title].call(this.queueing, action, (new Area(title)));
+				operationOnStoreSignal(observers[title], this.queueing, action, (new Area(title)));
 			}	
 		}
-		waitQueue.length = 0;
 	}
 
 	Dispatcher.prototype.unregister = function(title){
-		var observer;
+		var observer, store;
 
 		if(!isNullOrUndefined(observers[title])){
+			// initial clean-up
+
 			observer = observers[title];
+			store = stores[title];
 			observer.$$store_listeners.length = 0;
 			observer.$$store_listeners = null;
+			observer.$$historyIndex = null;
+			observer.$$history.length = 0;
+			observer.$$history = null;
 			
 			delete observers[title];
 			observer = null;
+
+			// further clean-up
+			if(store 
+				&& typeof store.destroy == 'function'){
+				store.destroy();
+				delete stores[title];
+				store = null;
+			}
 		}
 	}
 
@@ -601,7 +756,9 @@ Futures = function(){
 	return {
 
 		getInstance: function(){
+			
 			if($instance === null){
+
 				$instance = new Dispatcher();
 			}
 
@@ -627,21 +784,123 @@ Futures = function(){
 
 			return function(){
 
-				var argument = arguments[0];
+				var regFunc, area, argument = arguments.length? arguments[0] : null;
 
 				if(method == 'setChangeListener'){
+
 					return dispatcher.setStoreListener(this, argument);
 				}
 
 				if(method == 'unsetChangeListener'){
+
 					return dispatcher.unsetStoreListener(this, argument);
 				}
 
 				if(method == 'getState'){
-					var area = new Area(this.getTitle());
+
+					area = new Area(this.getTitle());
 					var value = area.get();
 					area = null;
+
 					return value;
+				}
+
+				if(method == 'destroy'){
+
+					area = new Area(this.getTitle());
+
+					area.del();
+
+					area = null;
+				}
+
+				if(method == 'hydrate'){
+
+					if(!!argument 
+						&& typeof argument != 'object'){
+						return;
+					}
+
+					return dispatcher.signal({
+						source:method,
+						actionType:argument.actionLabel,
+						actionData:argument.payload
+					});
+				}
+
+				if(method == 'getQuerySchema'){
+					
+					return {};
+				}
+
+				if(method == 'setPayloadDefinition'){
+					
+					return true;
+				}
+
+				if(method == 'setQuerySchema'){
+
+					return true;
+				}
+
+				if(method == 'canUndo'){
+
+					regFunc = dispatcher.getRegistration(this.getTitle());
+
+					return (regFunc.$$historyIndex != 0);
+				}
+
+				if(method == 'swapCallback'){
+
+					return dispatcher.register(this.getTitle(), argument);
+				}
+
+				if(method == 'canRedo'){
+					
+					regFunc = dispatcher.getRegistration(this.getTitle());
+
+					return (regFunc.$$historyIndex !== regFunc.$$history.length - 1);
+				}
+
+				if(method == 'undo'){
+
+					regFunc = dispatcher.getRegistration(this.getTitle());
+
+					area = new Area(this.getTitle());
+
+					if(this.canUndo()){
+						
+						--regFunc.$$historyIndex;
+
+						area.put(regFunc.$$history[regFunc.$$historyIndex]);
+
+						regFunc = null;
+
+						area = null;
+					}
+
+					return true;					
+					
+				}
+
+				if(method == 'redo'){
+
+					regFunc = dispatcher.getRegistration(this.getTitle());
+
+					area = new Area(this.getTitle());
+
+					if(this.canRedo()){
+
+						++regFunc.$$historyIndex;
+
+						area.put(regFunc.$$history[regFunc.$$historyIndex]);
+
+						regFunc = null;
+
+						area = null;
+					}
+
+					return true;
 				}
 			}
 			
@@ -689,6 +948,18 @@ Futures = function(){
 			return regId;
 
 		},
+		makeAggregator:function(){
+
+				return {
+					notifyAllStores:function(){
+						/*
+						for(var t in stores){
+
+						}
+						*/
+					}
+				}
+		},
 		setStoreObserver: function(object, regFunc){
 			if(typeof regFunc !== "function"){
 				return null;
@@ -701,7 +972,7 @@ Futures = function(){
 
 			dispatcher.register(title, regFunc);
 
-			var methods = ['setChangeListener', 'unsetChangeListener', 'getState'];
+			var methods = ['setChangeListener', 'unsetChangeListener', 'getState', 'getQuerySchema', 'setQuerySchema', 'setPayloadDefinition', 'canRedo', 'canUndo', 'swapCallback', 'undo', 'redo', 'hydrate', 'destroy'];
 
 			for(var c=0; c < methods.length; c++){
 				method = methods[c];
@@ -721,10 +992,10 @@ function Hub(){
 		}
 };
 
-// @TODO: figure out how to use this to manipulate application state more efficiently
+// @TODO: figure out how to use this to manipulate across these 2 different ypes of application state data more efficiently (if any)
 
-// Hub.prototype.UI_STATE_DATA = 1; - non-persisted application data
-// Hub.prototype.DOMAIN_STATE_DATA = 2; persisted application data
+// Hub.UI_STATE_DATA = 1; - non-persisted application data
+// Hub.DOMAIN_STATE_DATA = 2; - persisted application data
 
 Hub.prototype.constructor = Hub;
 
@@ -738,6 +1009,11 @@ Hub.prototype.onDispatch = function(handler){
 	Observable.watchDispatcher(handler);
 
 };
+
+Hub.prototype.requestAggregator = function(){
+
+	return Observable.makeAggregator();
+}
 
 Hub.prototype.createAction = function(vectors){
 
@@ -762,26 +1038,6 @@ Hub.prototype.createStore = function(dataTitle, registerCallback){
 
 	return novelStore;
 };
-
-Hub.prototype.mixin = function(){
-
-	return (function(){
-		/* @TODO: Still testing this out for React */
-
-		this.get = function(){
-			this.state;
-		}
-
-		this.set = function(s){
-			this.setState(s);
-		};
-
-		return {
-			get:this.get,
-			set:this.set
-		}
-	}());
-}
 
 return (new Hub());
 

@@ -1,6 +1,6 @@
  /*!
   * @lib: ngRadixx
-  * @version: 0.0.1
+  * @version: 0.0.2
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -11,7 +11,7 @@
 ;(function(w, a){
 
 	if(!a){
-		throw new Error("ngRadixx requires [AngularJS]");
+		throw new Error("ngRadixx requires [AngularJS] v1.x");
 		return;
 	}
 

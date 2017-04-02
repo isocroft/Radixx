@@ -2,6 +2,8 @@
 
 This is a simple library that implements the _Facebook_ **Flux Architecture** with a twist to how the entire application state is managed and changed/updated. It resembles **Redux** in a lot of ways. 
 
+## How to Use (Vanilla JS)
+
 ```html
 <!DOCTYPE html>
 <html>
@@ -16,7 +18,7 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 		});
 		
 		/* creating an action - multiple actions can be created for a real-life application */
-		var action = r.createAction({'loadTodos':'LOAD_TODOS'});
+		var action = r.createAction({loadTodos:'LOAD_TODOS',saveTodo:'SAVE_TODO'});
 		
 		/* creating a store - multiple stores can be created for a real-life application */
 		var store = r.createStore('todos', function(action, area){
@@ -26,17 +28,51 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 								todos = action.actionData;
 							break;
 						}
-						area.put(todos);
-		});
+
+						return area.put(todos);
+		}, []);
 
 		action.loadTodos([
 			{
-				text:'Make love to my wife!', 
+				text:'Buy flowers for my wife!', 
 				completed:true
 			},
 			{
 				text:'Write that website re-design proposal',
 				completed:false
+			}
+		]);
+
+		store.swapCallback(function(action, area){
+				var todos; 
+				switch(action.actionType){
+					case 'LOAD_TODOS':
+						todos = action.actionData;
+						/* 
+							setting up the format the state data should be stored before
+							it is put in storage.
+						*/ 
+						todos.toJSON = function(){
+							return this.map(function(val){
+								return {todoTimeToDueDate:(new Date*1),todo:val};
+							});
+						};
+					break;
+				}
+
+				return area.put(todos);
+		});
+
+		action.loadTodos([
+			{
+				text:'Buy flowers for my wife!', 
+				completed:true,
+				due_date_timestamp:1491144056023
+			},
+			{
+				text:'Write that website re-design proposal',
+				completed:false,
+				due_date_timestamp:1491144702573
 			}
 		]);
 	}(this.Radixx));	
@@ -68,6 +104,9 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 
 ## Features
 
+- Finite Undo/Redo (cos we have got to have trade-offs - Performance suffers if you have infinite undo/redo)
+- Use of Mixins for ReactJS (even though most people think mixins are dead and composition should be the only thins used)
+- Can replace the store callback (similar to **replaceReducer()** in _Redux_)
 - An extended Loose Coupling between Radixx Dispatcher and Controllers/Controller Views.
 - Configure the order in which the <q>dispacth</q> triggers the store callbacks.
 - A transparent way in separating mutation and asynchronousity in application state.
@@ -79,8 +118,50 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 
 ## Benefits
 
-- Use with Single Page Apps e.g. Angular 1/2, Ractive, React
-- Use with Multi Page Apps e.g jQuery, Jollof, Laravel, Django, AdonisJS 
+- Use with Single Page App Frameworks/Libraries e.g. Angular 1/2, Ractive, React
+- Use with Multi Page App Frameworks as well e.g jQuery, Jollof, Laravel, Django, AdonisJS 
+
+## Best Practices (Dos and Don'ts)
+
+- Application UI State {a.k.a Volatile Data} -- can't store this in Radixx (Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
+- Application Data State {a.k.a Non-Volatile Data} -- can store this in Radixx (Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
+
+> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively.
+
+
+## About Redux (with respect to Radixx)
+
+Hers's how **Redux** is simply described
+
+> Redux is basically event-sourcing where there is a single projection to consume (the application state).
+
+Someone had this to say about the state of **Redux** single store
+
+> I'm also not impressed about every action having to go “all the way” upwards (to the central store) instead of short-circuiting somewhere.
+
+That being said, here is a round-up of what makes **Redux** a GREAT tool (for some use cases) and what doesn't make it so ideal (for all use cases)
+
+# Gains of Redux single store
+
+- Infinte Undo/Redo + Live-Editing Time Travel (As application state is immutable)
+- Predictable Atomic Operation on Application state object (As action are run in a specific predictable order)
+- Single source of truth (No Guesswork!!)
+
+# Troubles with Redux single store
+
+- A sizable amount of boilerplate code (especially with **connect()** and **mapStateToProps()**) is required to get Redux up and running.
+- Dynamically structured state is impossible. (mature, complex apps need this the most).
+- Increased probability of state key(s) collisions between reducers (likely in a big complex web app).
+- Global variables are bad (This applies to the composition of the Redux application state itself) always.
+- Performance suffers as your state tree gets larger (Immutability is a good thing...sometimes).
+- Each time the **connect()** decorator is called, it pulls in the entire application state.
+
+
+_Your best bet in all these is to choose the trade-offs wisely (depending on the peculiarities of the web app you're building)_
+
+
+> NOTE: **Radixx** is not an outright drop-in replacement for **Redux** but a nice alternative when **Redux** doesn't quite fit your use case.
+
 
 ## Examples
 
@@ -88,7 +169,7 @@ This is a simple library that implements the _Facebook_ **Flux Architecture** wi
 
 ```js
 
-// Top-level Module { Using the Angular 1 Provider Helper - $ngRadixx }
+// Top-level Module { Using the Angular 1.x Provider Helper - $ngRadixx }
 
 angular.module("appy", [ 
 			'ui.router',
@@ -163,12 +244,14 @@ angular.module("appy.todos", [
 			break;
 			
 		};
-		area.put(todos);
+
+		return area.put(todos);
 	};
 	
 	return $ngRadixx.createStore(
 		'todos',
-		register
+		register,
+		[]
 	);
 }) 
 
@@ -185,10 +268,12 @@ angular.module("appy.todos", [
 					return row.doc;
 				});
 			}).catch(function(err){
-				if(err.name != 'conflict'){ // 'not_found'
+				if(err.name != 'conflict'){ 
 					return $http.get(url);
 				}else{
-					return [err];
+					if(err.name == 'not_found'){
+						return [err];
+					}	
 				}
 			});
 		}	
@@ -198,7 +283,7 @@ angular.module("appy.todos", [
 .controller("TodoCtrl", ['$scope', '$todoAction', '$todoStore', 'pouchDB', '$fetch'
 	function($scope, $todoActions, $todoStore, pouchDB, $fetch){
 
-		// get the 'key' for the {todos} store in the application state
+		// get the 'key' for the {todos} store (part) in the application state
 		var title = $todoStore.getTitle(), 
 
 		listen = (function(db){
@@ -231,7 +316,7 @@ angular.module("appy.todos", [
 
 
 		/* loading todos from server DB (or local DB) */
-		$fetch.getTodos('http://localhost:4002/todos').then(
+		$fetch.getTodos('http://localhost:4002/todos/all').then(
 			$todoAction.loadTodos.bind($todoAction)
 		);
 
@@ -245,6 +330,7 @@ angular.module("appy.todos", [
 
 			/* automatically update view when a dispatch happens on the store */
 			$scope.todos = state[title];
+			console.log("on-dispatch: " + JSON.stringify(state));
 		});
 
 		$scope.$on('$destroy', function(event, data){
@@ -258,6 +344,16 @@ angular.module("appy.todos", [
 			/* this function is triggered by a button click  
 				on the view and calls an action creator */
 			$todoAction.addTodo(todo);
+		};
+
+		$scope.undo = function(){
+
+			$todoStore.undo();
+		};
+
+		$scope.redo = function(){
+
+			$todoStore.redo();
 		};
 
 		$scope.removeTodo = function(todoId){
@@ -307,29 +403,24 @@ angular.module("appy.todos", [
 				});
 			break;
 		}
-		area.put(shoes);
-	});
 
-	var shoeComponent = React.createClass({
+		return area.put(shoes);
+	}, []);
 
-		getInitialState:function(){
+	store.reactjs.mixin = {
+		componentWillUnmount:function(){
 
-			var shoes = store.getState() || [];
-			return {shoes:shoes};
+			/* unsubscribe store change listener */
+			store.unsetChangeListener(this._onStoreChange.bind(this));
 		},
 		componentWillMount:function(){
 
 			/* if state doesn't conatian data, fetch from server */
 			if(this.state.shoes.length == 0){
 				this._fetch('http://localhost:5600/shoes').done(
-					action.loadShoes
+					action.loadShoes.bind(action)
 				);
 			}
-		},
-		componentWillUnmount:function(){
-
-			/* unsubscribe store change listener */
-			store.unsetChangeListener(this._onStoreChange.bind(this));
 		},
 		componentDidMount:function(){
 
@@ -339,16 +430,30 @@ angular.module("appy.todos", [
 			/* unsubscribe store change listener */
 			store.setChangeListener(this._onStoreChange.bind(this));
 		},
+		getDefaultProps:function(){
+
+			return {shoes:store.getState()};
+		}
+	};
+
+	var shoeComponent = React.createClass({
+
+		mixins:[store.reactjs.mixin],
+		getInitialState:function(){
+
+			return {isShoeOkay:false,loadingShoes:false};
+		},
 		shouldComponentUpdate:function(nextProps, nextState){
 
-			return this._deepEqual(this.state, nextState);
+			return this._deepEqual(this.state, nextState) && (nextProps.shoes.length != this.props.shoes.length);
 		},
 		componentWillUpdate:function(nextState){
 
-			socket.emit('nice-shoe', nextState.shoes);
+			socket.emit('shoe-okay', nextState.isShoeOkay);
 		},
 		render:function(){
-			var shoes = this.state.shoes;
+
+			var shoes = this.props.shoes;
 
 			return (
 
@@ -359,7 +464,7 @@ angular.module("appy.todos", [
 					</form>
 					<ul>
 						{shoes.forEach(function(shoe){
-							<li>{shoe}</li>
+							<li id={shoe.type}>{shoe.name}</li>
 						})}
 					</ul>
 				</section>
@@ -368,7 +473,11 @@ angular.module("appy.todos", [
 		},
 		onSubmitForm:function(e){
 			e.preventDefault();
+
 			var form = e.target;
+
+			this.setState({isShoeLoading:true});
+
 			action.addShoe(form.elements['add'].value);
 		},
 		_fetch:function(_url, _verb, _data){
@@ -412,8 +521,10 @@ angular.module("appy.todos", [
 				return check(original, copy);
 		},
 		_onStoreChange:function(){
+
+			this.props.shoes = store.getState();
 			
-			this.setState({shoes:store.getState()});
+			this.setState({isShoeLoading:false});
 		}
 	});
 
@@ -521,8 +632,7 @@ angular.module("appy.todos", [
 		_onDispatch:function(state){
 
 			/* this basically maps the application state to the component props */
-			//this.props = state;
-			this.setProps(state);
+			this.props.data = state;
 			
 		},
 		_onChange: function(){
@@ -575,8 +685,9 @@ angular.module("appy.todos", [
 							item = action.actionData;
 						break;
 					}
-					area.put(item);
-	});
+					
+					return area.put(item);
+	}, []);
 	
 	var shoeComponent = Ractive.extend({
 	

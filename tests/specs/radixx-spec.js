@@ -13,15 +13,18 @@ describe("Radixx: ", function() {
 			beforeEach(function() {
 			
 			    action = Radixx.createAction({'createItem':'CREATE_ITEM'});
-			    Routines = {callback:function(action, area){  }};
-				store = Radixx.createStore("items", Routines.callback);
+			    Routines = {callback:function(action, area){ console && console.log("Action: " + action.actionType + "called!!"); return []; }};
+				store = Radixx.createStore("items", Routines.callback, []);
+
+				store.setChangeListener(function(){});
 			  	
 				
 	            jasmine.addMatchers({
 				    toBeAStore:function(util, customEqualityTesters){
 
 				    		return {
-						       compare:function(actual, expected){
+						       	compare:function(actual, expected){
+
 							        if(!expected){
 									   expected = true;
 									}
@@ -31,19 +34,20 @@ describe("Radixx: ", function() {
 									result.pass = util.equals((actual.toString() == "[object RadixxStore]"), expected, customEqualityTesters);
 				    
 				    				if(result.pass){
-									     result.message = "It's a store object";
+									     result.message = "It's a [Radixx] store object";
 									}else{
-									    result.message = "It's not a store object";
+									    result.message = "It's not a [Radixx] store object";
 									}
 									
 									return result;
-							}		
-						}			
+								}		
+							};			
 				    },
 				    toBeAnAction:function(util, customEqualityTesters){
 
 				    	return {
 						       compare:function(actual, expected){
+
 							        if(!expected){
 									   expected = true;
 									}
@@ -53,14 +57,14 @@ describe("Radixx: ", function() {
 									result.pass = util.equals((actual.toString() == "[object RadixxAction]"), expected, customEqualityTesters);
 				    
 									if(result.pass){
-									     result.message = "It's an action object";
+									     result.message = "It's a [Radixx] action object";
 									}else{
-									    result.message = "It's not an action object";
+									    result.message = "It's not a [Radixx] action object";
 									}
 									
 									return result;
 								}	
-						}			
+						};			
 				    }, 
 					toBeAFunction:function(util, customEqualityTesters){
 					    return {
@@ -81,8 +85,7 @@ describe("Radixx: ", function() {
 									
 									return result;
 							   }
-						  
-					    }
+					    };
 					}
 			    });
 				
@@ -107,10 +110,16 @@ describe("Radixx: ", function() {
 				   expect(store.setChangeListener).toBeAFunction();
 
 				   expect(store.unsetChangeListener).toBeAFunction();
+
+				   expect(store.swapCallback).toBeAFunction();
+
+				   expect(store.undo).toBeAFunction();
+
+				   expect(store.redo).toBeAFunction();
 				
             });
 			
-			it("should trigger the store callback when action creators are called", function(){
+			it("should trigger the store callback(s) when action creators are called", function(){
 			
 			      spyOn(Routines, "callback");
 				  
@@ -118,6 +127,19 @@ describe("Radixx: ", function() {
 
 				  expect(Routines.callback).toHaveBeenCalled();
 				  
+			});
+
+			it("should throw an error if new state object isn't returned from store callback", function(){
+
+				  expect(function(){ 
+
+				  		store.swapCallback(function(action, area){
+
+				  		});
+				  
+				        action.createItem({});
+						
+				  }).toThrowError("Radixx: Application State unavailable after signal to Dispatcher"); 
 			});
 
 });
