@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.0.2
+  * @version: 0.0.3
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -87,7 +87,7 @@ Object.keys = Object.keys || function (fu){
 };
 
 // Store constructor
-Store = (function(){
+var Store = (function(){
 
 	var requirementTypes = ['graph-ql'];
 
@@ -423,6 +423,10 @@ Futures = function(){
 
 	},
 
+		storeKeys = [
+
+	],
+
 	    observers = {
 
 	},
@@ -436,6 +440,10 @@ Futures = function(){
 	],
 	    dispatchRegistry = {
 		
+	},
+
+		cachedStorageKeys = {
+
 	},
     
     getObjectPrototype = function(obj){
@@ -457,11 +465,38 @@ Futures = function(){
 			return (obj === void 0);
 	},
 
+	triggerEvt = function(target, eType, detail, globale){
+			   									
+			var t, evt = ('Event' in globale)? new Event(eType) : null, dispatch = null;
+
+
+			if(evt === null){
+				(('CustomEvent' in globale) && !globale.document.documentMode ? new CustomEvent(eType) : globale.document.createEventObject());
+			}
+
+			// set up cross-browser dispatch method.
+			dispatch = target[ (globale.document.documentMode || (globale.document.execScript && String(globale.document.execScript).indexOf("native") > -1)) ? "fireEvent" : "dispatchEvent" ];
+	 
+			if(typeof detail === "object"){
+					// set expando properties on event object
+					for(t in detail){
+					   if((({}).hasOwnProperty.call(detail, t))){
+						   evt[t] = detail[t];
+					   }
+					}
+		    }
+		    // Actually, including support for IE6-8 here ;)
+		    dispatch.apply(target, ((((globale.attachEvent || {}).toString()).indexOf("native") > -1) ? ["on"+eType , evt] : [evt])); 
+		   
+		    return true;
+    },
+
+
 	operationOnStoreSignal = function(fn, queueing, action, area) { 
 
 	    // first, retrieve the very first state data and cache it
 	    if(fn.$$history.length == 1 
-		&& !fn.$$initData){
+		&& (!fn.$$initData)){
 
 	 		fn.$$initData = fn.$$history[0];
 	    }		
@@ -470,11 +505,19 @@ Futures = function(){
 
 	    fn.$$history = fn.$$history.slice(0, fn.$$historyIndex + 1);
 	    
-	    // create a new state of the store data by applying
-	    // a given store callback function to the current head
-	    var newStoreState = fn.call(queueing, action, area);
+	    // lets setup a place to store new state, also mark out the context of this call
+	    var newStoreState = false, context = this, len;
 
-		if(!newStoreState){
+	    // create a new state of the store data by applying a given
+	    // store callback function to the current history head
+	    if(typeof context == 'function'){
+	    	newStoreState = context(area, action.actionData);
+	    }else{
+	    	newStoreState = fn.call(queueing, action, area);
+	    }
+
+		if(typeof newStoreState == 'boolean'
+			|| newStoreState == undefined){
 			
 			throw new TypeError("Radixx: Application State unavailable after signal to Dispatcher");		
 
@@ -483,7 +526,8 @@ Futures = function(){
 	    
 	    // add the new state to the history list and increment
 	    // the index to match in place
-	    var len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
+	    len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
+	    
 	    fn.$$historyIndex++;
 
 	    if(fn.$$history.length > 15){ // can't undo/redo (either way) more than 15 moves at any time
@@ -522,7 +566,7 @@ Futures = function(){
 
 		var appStateData = {}, key;		
 
-		// We iterate this way so we can support IE 8 
+		// We iterate this way so we can support IE 8 + other browsers
 		for(var i=0; i < sessStore.length; i++){
 			key = sessStore.key(i);
 			appStateData[key] = getNormalized(sessStore.getItem(key));
@@ -535,18 +579,74 @@ Futures = function(){
 
 		this.put = function(value){
 			
-			// Detecting IE 8 to enable hack
-			if(sessStore.remainingSpace && mode === 8){
-				sessStore.$$key = key;
-				sessStore.constructor.$$currentStoreType = sessStore;
+			/* 
+				In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
+				we need to fix this by using IE proprietary methods 
+
+				Reference: https://nczonline.com/blog/2009/07/21/introduction-to-sessionstorage/ 
+			*/
+			
+			var indexStart, 
+				indexEnd, 
+				isIE8Storage = ('remainingSpace' in sessStore) && (mode === 8);
+
+			// Detecting IE 8 to enable forced sync
+			if(isIE8Storage){
+				if(typeof sessStore.begin == 'function'){
+					sessStore.begin();
+				}
+			}
+
+			try{
+				sessStore.setItem(key, setNormalized(value));
+			}catch(e){
+				
+				if(cachedStorageKeys[key]){
+					// we're in overwrite mode
+					indexStart = win.name.indexOf(key);
+
+					indexEnd = win.name.indexOf('|', indexStart);
+
+					win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
+				}
+
+				if(win.name === ""){
+
+					win.name = key + '=' + setNormalized(value) + '|';
+
+				}else{
+
+					win.name += key + '=' + setNormalized(value) + '|';
+
+				}
+				cachedStorageKeys[key] = 1;
+			}
+
+			if(isIE8Storage){
+				if(typeof sessStore.commit == 'function'){
+					sessStore.commit();
+				}
 			}
 			
-			sessStore.setItem(key, setNormalized(value));
+			triggerEvt(win.document, 'storesignal', {url:win.location.href,key:key,newValue:value,source:win}, win);
 
 			return value;
 		};
 
 		this.get = function(){
+
+			var indexStart, indexEnd, values;
+
+			if(cachedStorageKeys[key]){
+
+				indexStart = win.name.indexOf(key);
+
+				indexEnd = win.name.indexOf('|', indexStart);
+
+				values = (win.name.substring(indexStart, indexEnd)).split('=');
+
+				return getNormalized(values[1]) || null;
+			}
 
 			return getNormalized(sessStore.getItem(key)) || null;
 		};
@@ -586,19 +686,18 @@ Futures = function(){
 	stateWatcher = function(e){
 
 		e = e || win.event;
-		var listeners;
 
 		// Detecting IE 8 to apply mild hack on event object
-		if(sessStore.remainingSpace && (e.source === null)){
-			if('$$key' in sessStore){
-				e.key = sessStore.$$key;
-				e.storageArea = sessStore.constructor.$$currentStoreType;
+		if(('remainingSpace' in sessStore) && (e.source === null)){
+			if(false){
+				;
 			}
 		}
 
-		if(e.storageArea === sessStore){
 
-			var storeTitle = e.key;
+		if(storeKeys.indexOf(e.key) > -1){
+
+			var storeTitle = e.key, listeners;
 
 			if(!isNullOrUndefined(observers[storeTitle])){
 
@@ -606,7 +705,7 @@ Futures = function(){
 
 				for(var t=0; t < listeners.length; t++){
 						    			
-					listeners[t].call(stores[storeTitle], null);
+					listeners[t].call(stores[storeTitle], storeTitle);
 						    
 				}
 			}
@@ -615,19 +714,22 @@ Futures = function(){
 
 	function Dispatcher(){
 
-		if(win.addEventListener){
+		if(win.document.addEventListener){
 			/* IE 9+, W3C browsers */
-			win.addEventListener('storage', stateWatcher, false);
+			//win.addEventListener('storage', stateWatcher, false);
+			win.document.addEventListener('storesignal', stateWatcher, false);
 		}else if(win.document.attachEvent){
 			/* IE 8 expects the handler to be bound to the document 
 				and not to the window */
-			win.document.attachEvent('onstorage', stateWatcher);
+			//win.document.attachEvent('onstorage', stateWatcher);
+			win.document.attachEvent('onstoresignal', stateWatcher);
 		}
 	}
 
 	Dispatcher.prototype.getRegistration = function(title){
 
 		if(Hop.call(observers, title)){
+			
 			return observers[title];
 		}
 
@@ -645,6 +747,7 @@ Futures = function(){
 					
 						return;
 					}
+
 					observer.$$history = observers[title].$$history;
 					observer.$$historyIndex = observers[title].$$historyIndex;
 					observer.$$store_listeners = observers[title].$$store_listeners;
@@ -655,8 +758,9 @@ Futures = function(){
 				observer.$$history = [(!!defaultStoreContainer ? defaultStoreContainer : [])];
 				observer.$$historyIndex = 0;
 				observers[title] = observer;
+				storeKeys.push(title);
 			}
-				
+			
 			return true;
 	}
 
@@ -677,6 +781,7 @@ Futures = function(){
 	};
 
 	Dispatcher.prototype.unsetStoreListener = function(store, callback){
+
 		var title = store.getTitle();
 
 		if(!isNullOrUndefined(observers[title])){
@@ -685,6 +790,21 @@ Futures = function(){
 				observers[title].$$store_listeners.splice(pos, 1);
 			}
 		}
+
+	};
+
+	Dispatcher.prototype.signalUnique = function(hydrateAction){
+
+		// Pass this on to the event queue [await]
+		win.setTimeout(handlePromises, 0);
+
+		if(hydrateAction.source != 'hydrate'){
+			return;
+		}
+
+		var contextFn = function(a, d){ return a.put(d); };
+
+		operationOnStoreSignal.apply(contextFn, [observers[hydrateAction.target], null, hydrateAction, (new Area(title))]);
 	};
 
 	Dispatcher.prototype.signal = function(action){ 
@@ -693,20 +813,19 @@ Futures = function(){
 		win.setTimeout(handlePromises, 0);
 
 		// Some validation - just to make sure
-		if(!(action.source in dispatchRegistry) 
-			/*|| action.source != 'hydrate'*/){
+		if(!(action.source in dispatchRegistry)){
 			return;
 		}
 
 		for(var title in observers){
 			if(Hop.call(observers, title)){
-				operationOnStoreSignal(observers[title], this.queueing, action, (new Area(title)));
+				operationOnStoreSignal.apply(null, [observers[title], this.queueing, action, (new Area(title))]);
 			}	
 		}
 	}
 
 	Dispatcher.prototype.unregister = function(title){
-		var observer, store;
+		var observer, store, index;
 
 		if(!isNullOrUndefined(observers[title])){
 			// initial clean-up
@@ -719,15 +838,17 @@ Futures = function(){
 			observer.$$history.length = 0;
 			observer.$$history = null;
 			
+			// more clean-up (freeing memory)
 			delete observers[title];
 			observer = null;
+			
+			delete stores[title];
+			store = null;
 
-			// further clean-up
-			if(store 
-				&& typeof store.destroy == 'function'){
-				store.destroy();
-				delete stores[title];
-				store = null;
+			index = storeKeys.indexOf(title);
+
+			if(index != -1){
+				storeKeys.splice(index, 1);
 			}
 		}
 	}
@@ -765,6 +886,28 @@ Futures = function(){
 			return $instance;
 
 		},
+		eachStore:function(fn, extractor, storeArray){
+
+			_each(storeKeys, extractor.bind((storeArray = []), stores));
+
+			var callable = fn,
+			prevIndex = storeArray.length - 1,
+			next = function(){
+			
+				var returnVal;
+
+				if(prevIndex >= 0){	
+					returnVal = Boolean(callable.call(null, storeArray[prevIndex--], next));
+				}else{
+					callable = !0;
+					returnVal = true;
+				}
+
+				return returnVal;
+			};
+
+			return next(); 
+		},
 		setActionVectors: function(object, vectors){
 			var _proto = getObjectPrototype(object),
 			    dispatcher = this.getInstance(),
@@ -797,45 +940,59 @@ Futures = function(){
 				}
 
 				if(method == 'getState'){
-
+					var value;
 					area = new Area(this.getTitle());
-					var value = area.get();
+					value = area.get();
 					area = null;
 
-					return value;
+					if(value === area){
+
+						regFunc = dispatcher.getRegistration(this.getTitle());
+
+						return (regFunc.$$history.length && regFunc.$$history[0]);
+					}
+
+					return  (typeof argument == 'string' && (argument in value)) ? value[argument] : value;
 				}
 
 				if(method == 'destroy'){
+
+					var title = this.getTitle(), index;
+
+					if(title in stores){
+						
+						delete stores[title];
+
+					}
 
 					area = new Area(this.getTitle());
 
 					area.del();
 
-					area = null;
+					return (area = null);
+				}
+
+				if(method == 'disconnect'){
+
+					return dispatcher.unregister(this.getTitle());
 				}
 
 				if(method == 'hydrate'){
 
-					if(!!argument 
-						&& typeof argument != 'object'){
+					if(isNullOrUndefined(argument)){
 						return;
 					}
 
-					return dispatcher.signal({
+					return dispatcher.signalUnique({
 						source:method,
-						actionType:argument.actionLabel,
-						actionData:argument.payload
+						target:this.getTitle(),
+						actionData:argument
 					});
 				}
 
 				if(method == 'getQuerySchema'){
 					
 					return {};
-				}
-
-				if(method == 'setPayloadDefinition'){
-					
-					return true;
 				}
 
 				if(method == 'setQuerySchema'){
@@ -953,14 +1110,11 @@ Futures = function(){
 				return {
 					notifyAllStores:function(){
 						/*
-						for(var t in stores){
-
-						}
 						*/
 					}
 				}
 		},
-		setStoreObserver: function(object, regFunc){
+		setStoreObserver: function(object, regFunc, defaultStateObj){
 			if(typeof regFunc !== "function"){
 				return null;
 			}
@@ -970,9 +1124,9 @@ Futures = function(){
 				title     = object.getTitle(),
 				method = null;
 
-			dispatcher.register(title, regFunc);
+			dispatcher.register(title, regFunc, defaultStateObj);
 
-			var methods = ['setChangeListener', 'unsetChangeListener', 'getState', 'getQuerySchema', 'setQuerySchema', 'setPayloadDefinition', 'canRedo', 'canUndo', 'swapCallback', 'undo', 'redo', 'hydrate', 'destroy'];
+			var methods = ['setChangeListener', 'unsetChangeListener', 'getState', 'disconnect', 'getQuerySchema', 'canRedo', 'canUndo', 'swapCallback', 'undo', 'redo', 'hydrate', 'destroy'];
 
 			for(var c=0; c < methods.length; c++){
 				method = methods[c];
@@ -1013,7 +1167,14 @@ Hub.prototype.onDispatch = function(handler){
 Hub.prototype.requestAggregator = function(){
 
 	return Observable.makeAggregator();
-}
+};
+
+Hub.prototype.eachStore = function(callback){
+
+	return Observable.eachStore(callback, function(stores, key){
+			this.push(stores[key]);
+	}, null);
+};
 
 Hub.prototype.createAction = function(vectors){
 
@@ -1026,7 +1187,7 @@ Hub.prototype.createAction = function(vectors){
 	return Observable.setActionVectors(novelAction, vectors);
 };
 
-Hub.prototype.createStore = function(dataTitle, registerCallback){
+Hub.prototype.createStore = function(dataTitle, registerCallback, defaultStateObj){
 
 	function _store(){
 		Store.apply(this, Slc.call(arguments));
@@ -1034,7 +1195,7 @@ Hub.prototype.createStore = function(dataTitle, registerCallback){
 
 	var novelStore = new _store(dataTitle);
 
-	Observable.setStoreObserver(novelStore, registerCallback);
+	Observable.setStoreObserver(novelStore, registerCallback, defaultStateObj);
 
 	return novelStore;
 };

@@ -111,6 +111,8 @@ describe("Radixx: ", function() {
 
 				   expect(store.unsetChangeListener).toBeAFunction();
 
+				   expect(store.hydrate).toBeAFunction();
+
 				   expect(store.swapCallback).toBeAFunction();
 
 				   expect(store.undo).toBeAFunction();
@@ -131,11 +133,11 @@ describe("Radixx: ", function() {
 
 			it("should throw an error if new state object isn't returned from store callback", function(){
 
+				  store.swapCallback(function(action, area){
+				  		;
+				  });
+
 				  expect(function(){ 
-
-				  		store.swapCallback(function(action, area){
-
-				  		});
 				  
 				        action.createItem({});
 						
