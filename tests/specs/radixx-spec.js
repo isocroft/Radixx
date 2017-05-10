@@ -6,19 +6,21 @@
 
 describe("Radixx: ", function() {
   
-            var action;
-            var store;
-            var Routines;
-  
-			beforeEach(function() {
-			
-			    action = Radixx.createAction({'createItem':'CREATE_ITEM'});
-			    Routines = {callback:function(action, area){ console && console.log("Action: " + action.actionType + "called!!"); return []; }};
-				store = Radixx.createStore("items", Routines.callback, []);
+            var action = Radixx.createAction({
+            		'createItem':'CREATE_ITEM'
+            });
+            var Routines = {
+            		storeCallbackSpy:jasmine.createSpy('storeCallbackSpy() spy').and.callFake(
+            				function(){  return []; }
+            		)
+            	};
+            var store = Radixx.createStore("items", Routines.storeCallbackSpy, []);
+            var listener = jasmine.createSpy('dummy');
 
-				store.setChangeListener(function(){});
+			store.setChangeListener(listener);
+
+			beforeEach(function() {
 			  	
-				
 	            jasmine.addMatchers({
 				    toBeAStore:function(util, customEqualityTesters){
 
@@ -92,12 +94,15 @@ describe("Radixx: ", function() {
 			});
 			
 			afterEach(function() {
-				 store = null;
-				 action = null;
-				 Routines = null;
+
+				 if(store.canUndo()){
+				 	
+				 	 store.undo();
+				 }
+
 			});
 			
-			it("should expose relevant objects and object APIs", function() {
+			it("should expose relevant objects and API methods", function() {
 			
 				   expect(action).toBeAnAction();
 				
@@ -121,19 +126,26 @@ describe("Radixx: ", function() {
 				
             });
 			
-			it("should trigger the store callback(s) when action creators are called", function(){
-			
-			      spyOn(Routines, "callback");
+			it("should trigger the store callback(s) when the action creator(s) are called", function(){
 				  
 				  action.createItem([]);
 
-				  expect(Routines.callback).toHaveBeenCalled();
+				  expect(Routines.storeCallbackSpy).toHaveBeenCalled();
 				  
 			});
 
-			it("should throw an error if new state object isn't returned from store callback", function(){
+			it("should trigger the store lsitener(s) when the action creator(s) are called", function(){
+				
+				  action.createItem([]);
+
+				  expect(listener).toHaveBeenCalled();
+				  
+			});
+
+			it("should throw an error if `undefined` is returned from the store callback", function(){
 
 				  store.swapCallback(function(action, area){
+				  		
 				  		;
 				  });
 
@@ -143,6 +155,7 @@ describe("Radixx: ", function() {
 						
 				  }).toThrowError("Radixx: Application State unavailable after signal to Dispatcher"); 
 			});
+
 
 });
     

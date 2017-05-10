@@ -10,7 +10,7 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 <head>
 	<title>Radixx - Example App</title>
 	<script type="text/javascript">
-	;(function(r){
+	;(function(w, r){
 		r.onDispatch(function(app_state){
 			/* fired when all synchronous/asynchronous 
 				mutations are completely done on the state */
@@ -20,11 +20,11 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 		var registeredStores = [];
 		
 		/* creating an action - multiple actions can be created for a real-life application */
-		var action = r.createAction({loadTodos:'LOAD_TODOS',saveTodo:'SAVE_TODO'});
+		w.action = r.createAction({loadTodos:'LOAD_TODOS',saveTodo:'SAVE_TODO'});
 		
 		/* creating a store - multiple stores can be created for a real-life application */
 		/* there's a strict structure to how to define a store callback - MUST always return area.put(); - as calling the put() method this way triggeres all change listeners */
-		var store = r.createStore('todos', function(action, area){
+		w.store = r.createStore('todos', function(action, area){
 						var todos; 
 						switch(action.actionType){
 							case 'LOAD_TODOS':
@@ -60,18 +60,6 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 			next();
 		});
 
-		// calling an action - an action triggers changes in the store (by extension the application state)
-		action.loadTodos([
-			{
-				text:'Buy flowers for my wife!', 
-				completed:true
-			},
-			{
-				text:'Write that website re-design proposal',
-				completed:false
-			}
-		]);
-
 		// swapping the store callback with a new one
 		store.swapCallback(function(action, area){
 				var todos; 
@@ -84,7 +72,11 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 						*/ 
 						todos.toJSON = function(){
 							return this.map(function(val){
-								return {todoTimeToDueDate:(new Date*1),todo:val};
+								var todoTimeToDueDate = (new Date*1);
+								return {
+										is_overdue:todoTimeToDueDate > val.due_date_timestamp,
+										todo:val
+								};
 							});
 						};
 					break;
@@ -95,41 +87,52 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 
 				return area.put(todos);
 		});
-
-		action.loadTodos([
-			{
-				text:'Buy flowers for my wife!', 
-				completed:true,
-				due_date_timestamp:1491144056023
-			},
-			{
-				text:'Write that website re-design proposal',
-				completed:false,
-				due_date_timestamp:1491144702573
-			}
-		]);
-	}(this.Radixx));	
+	}(this, this.Radixx));	
 	</script>
 </head>
 <body>
 	<ul id="todos"></ul>
+	<button type="button" disabled="disabled" id="undo-btn">UNDO</button>
 
 	<script type="text/javascript">
-		;(function(d){
+		;(function(w, d){
+
+			// calling an action - an action triggers changes in the store (by extension the application state)
+			action.loadTodos([
+				{
+					text:'Buy flowers for my wife!', 
+					completed:true,
+					due_date_timestamp:1491144056023
+				},
+				{
+					text:'Write that website re-design proposal',
+					completed:false,
+					due_date_timestamp:1491144702573
+				}
+			]);
 
 			var mount_point = d.getElementById("todos");
+			var button = d.getElementById("undo-btn");
 			var li = null;
-			var list = store.getState();
+			var list = w.store.getState();
 
 			list.forEach(function(item, i){
 				li = d.createElement("li");
 				li.setAttribute("data-key", i);
-				li.setAttribute("data-todo-done", String(item.completed));
-				li.appendChild(d.createTextNode(item.text));
+				li.setAttribute("data-todo-overdue", item.is_overdue);
+				li.setAttribute("data-todo-done", String(item.todo.completed));
+				li.appendChild(d.createTextNode(item.todo.text));
 				mount_point.appendChild(li);
 			});
 
-		}(this.document));
+			button.disabled = !w.store.canUndo();
+			button.onclick = function(e){
+				// undo application state changes
+				w.store.undo();
+				this.disabled = !w.store.canUndo();
+			};
+
+		}(this, this.document));
 	</script>
 </body>
 </html>
@@ -216,15 +219,15 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 ## Benefits
 
-- Use with Single Page App Frameworks/Libraries e.g. Angular 1.x, Ractive, React
-- Use with Multi Page App Frameworks as well e.g jQuery, Jollof, Pheonix, Laravel, Django, AdonisJS (application state persists across page reloads)
+- Use with Single Page App Frameworks/Libraries e.g. VueJS 1.x/2.x, AngularJS 1.x, Angular 2.x, Ractive, React
+- Use with Multi Page App Frameworks as well e.g jQuery, Jollof, Pheonix, Laravel, Flask, AdonisJS (application state persists across page loads/reloads)
 
 ## Best Practices (Dos and Don'ts)
 
-- Application UI State {a.k.a Volatile Data} -- can't store this in Radixx (Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
-- Application Data State {a.k.a Non-Volatile Data} -- can store this in Radixx (Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
+- Application UI State {a.k.a Volatile Data} -- **can't store** this in Radixx (Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
+- Application Data State {a.k.a Non-Volatile Data} -- **can store** this in Radixx (Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
 
-> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively. One reason why
+> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the view and {this.state} since {this.setState} is asynchronous in the way it operates.
 
 
 ## About Redux (with respect to Radixx)
@@ -262,6 +265,94 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 
 
 ## Examples
+
+>VueJS 1.x/2.x
+
+```js
+
+	var action = Radixx.createAction({'addStuff':'ADD_STUFF'});
+
+	var store = Radixx.createStore('stuffs', function(action, area){
+			var stuffs;
+			switch(action.actionType){
+				case 'ADD_STUFF':
+					stuffs = area.get();
+					if(action.actionKey){
+						stuffs[action.actionKey] = action.actionData;
+					}
+				break;
+				default:
+					return null;
+				break;
+			}
+
+			return area.put(stuffs);
+	}, {
+		firstName:'',
+		lastName:'',
+		text:'okay!'
+	});
+
+	// Vue Component defined with lifecycle hooks
+
+	var MyVueComponent = Vue.extend({
+			name:'radixx-powered',
+			mixins:[store.vuejs.mixins],
+			prop:['gender'],
+			template:'<div><p>{{fullName}}</p>'+
+			'<input type="text" v-model="text">'+
+			'<button v-on:click="add">ADD</button></div>',
+			computed:{
+				fullName:function(){
+					return this.firstName + ' ' + this.lastName;
+				}
+			},
+			beforeCreate:function(){
+				// for an advanced app, an ajax call may come in here ...
+
+				/* 	
+					from an ajax call response, if an empty object literal was passed to
+					`Radixx.createStore` call (above), then, we can call `hydrate` on the
+					store object here passing it the requisite data from the ajax response
+
+					store.hydrate( ajaxResponseData );
+				*/
+			},
+			mounted:function(){
+
+				// code here...
+			},
+			beforeUpdate:function(){
+
+				// code here...
+			},
+			methods:{
+				add:function(){
+
+					/* 
+						calling an action to write data into our store
+						and trigger an update on the view, here we are
+						writing to `firstName` with a value of `this.text`
+
+					*/
+					action.addStuff(this.text, 'firstName');
+				}
+			},
+			destroyed:function(){
+
+				// code here...
+			}
+	});
+
+	var app = new Vue({
+			el:'#app',
+			components:{
+				MyComponent:MyVueComponent
+			},
+			template:'<my-component gender="male"></my-component>'
+	});
+
+```
 
 >AngularJS 1.x
 
@@ -426,7 +517,7 @@ angular.module("appy.todos", [
 				Here: we're triggering an action
 			*/
 
-			// store.hydrate(data.response);
+			// $todoStore.hydrate(data.response);
 			$todoAction.loadTodos(data.response);
 		});
 
@@ -538,7 +629,7 @@ angular.module("appy.todos", [
 					'clothes'
 				], function(){
 					
-					/* custom pub/sub object for communicating 
+					/* assuming: custom pub/sub object for communicating 
 						with other stores (not defined here) */
 					E.emit('clothes', area.get());
 				});
@@ -549,30 +640,35 @@ angular.module("appy.todos", [
 		}
 
 		return area.put(shoes);
-	}, []);
+
+	}, {shoes:[]});
 
 	store.reactjs.mixin = {
 		componentWillUnmount:function(){
 
+			this._storeListener = this._onStoreChange.bind(this);
 			/* unsubscribe store change listener */
-			store.unsetChangeListener(this._onStoreChange.bind(this));
-		},
+			store.unsetChangeListener(this._storeListener);
+		}
 		componentDidMount:function(){
 
 			/* Assuming use of socket.io library - joining a room */
 			socket.join('shoelovers');
 
-			/* unsubscribe store change listener */
-			store.setChangeListener(this._onStoreChange.bind(this));
+			/* subscribe store change listener */
+			store.setChangeListener(this._storeListener);
+
 		},
 		getDefaultProps:function(){
 
-			return {shoes:[]};
+			return store.getState();
 		}
 	};
 
 
 	/* PRESENTATION COMPONENT */
+
+	// defined with lifecycle hooks
 
 	var ShoeComponent = React.createClass({
 			getStyle: function(){
@@ -587,19 +683,20 @@ angular.module("appy.todos", [
 			},
 			render:function(){
 
-				var shoes = this.props.shoes, _style = this.getStyle();
+				var shoes = this.props.shoes.map(function(shoe){
+								return <li id={shoe.type}>{shoe.name}</li>
+							}), 
+					_style = this.getStyle();
 
 				return (
 
 					<section style={_style}>
 						<form className="form" onSubmit={this.props.submit}>
-							<input type="text" name="add" id="add" placeholder="Add Shoes..." onKeyPress={this.props.keys} />
+							<input type="text" name="add" id="add" placeholder="Add Shoes..." onKeyPress={this.props.keyz} />
 							<button type="submit">ADD</button>
 						</form>
 						<ul>
-							{shoes.forEach(function(shoe){
-								<li id={shoe.type} key={shoe.type}>{shoe.name}</li>
-							})}
+							{shoes}
 						</ul>
 					</section>
 
@@ -610,9 +707,11 @@ angular.module("appy.todos", [
 
 	/* CONTAINER COMPONENT */
 
+	// defined with lifecycle hooks
+
 	var ShoeApp = React.createClass({
 		propTypes:{
-			React.PropTypes.array
+			shoes:React.PropTypes.array
 		},
 		mixins:[store.reactjs.mixin],
 		getInitialState:function(){
@@ -634,22 +733,28 @@ angular.module("appy.todos", [
 		},
 		componentDidUpdate:function(){
 
+			console.log(this.state);
+
 			socket.emit('shoe-okay', this.props.shoes);
 		},
 		render:function(){
 
-				 var _shoes = store.getState();
+				 var _shoes = store.getState('shoes');
 
 				 return (
 
-				 	<ShoeComponent shoes={_shoes} />
+				 	<ShoeComponent shoes={_shoes} submit={this.onSubmitForm.bind(this)} keyz={this.onKeyPress.bind(this)} />
 
 				);
 		},
 		onKeyPress:function(e){
-			/* This is actually supposed to be debounced so we reduce the rate of "useless rerenders" - for now we use an if statement to make up */
+
+			/* 
+				This is actually supposed to be debounced so we reduce the rate of "useless re-renders" - for now we use an if statement to make up for that 
+			*/
 			
-			// remember: setState() is asynchronous
+			// functional `setState`
+
 			if(this.state.addingShoe !== true){
 				this.setState((prevState, props) => { 
 
@@ -672,7 +777,8 @@ angular.module("appy.todos", [
 			if(!_data)
 				_data = ""	
 
-			/* Assuming jQuery is loaded in */	
+			/* Assuming `jQuery` is loaded in */
+
 			return $.ajax({
 				url:_url,
 				method:_verb,
@@ -680,35 +786,39 @@ angular.module("appy.todos", [
 			});
 		},
 		_deepEqual: function(original, copy){
+				
 				function check (x, y) {
-					  if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
-					    if (Object.keys(x).length != Object.keys(y).length)
-					      return false;
+					  if ((typeof x == "object" && x != null) 
+					  		&& (typeof y == "object" && y != null)) {
+					    	
+					    	if (Object.keys(x).length != Object.keys(y).length)
+					      		return false;
 
-					    for (var prop in x) {
-					      if (({}).hasOwnProperty.call(y, prop))
-					      {  
-						if (! check(x[prop], y[prop]))
-						  return false;
-					      }
-					      else
-						return false;
-					    }
+						    for (var prop in x) {
+						      	if (({}).hasOwnProperty.call(y, prop)){  
+									if (! check(x[prop], y[prop]))
+									 	 return false;
+								}else{
+									return false;
+								}
+						    }
 
-					    return true;
-					  }
-					  else if (x !== y)
-					    return false;
-					  else
-					    return true;
+						    return true;
+					  }else if (x !== y){
+					    	return false;
+					  }else{
+					    	return true;
+					  } 	
 				};
 				
 				return check(original, copy);
 		},
+		_storeListener:null,
 		_onStoreChange:function(){
 			
 			console.log("store change detected!");
 
+			// functional `setState`
 			this.setState((prevState, props) => { 
 
 				return {addingShoe:!prevState.addingShoe}; 
@@ -717,7 +827,9 @@ angular.module("appy.todos", [
 		}
 	});
 
-	React.render(<ShoeApp />, document.body);
+	ReactDOM.render(<ShoeApp />, document.body, function(){
+		console.log("shoes app is good to go!");
+	});
 	
 ```
 

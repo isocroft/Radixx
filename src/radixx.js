@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.0.3
+  * @version: 0.0.4
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -73,7 +73,15 @@ Object.keys = Object.keys || function (fu){
           }
     }
     var l = !ob.propertyIsEnumerable('toString'), 
-	    m = ['toString', 'toLocaleString', 'valueOf', 'hasOwnProperty', 'isPrototypeOf', 'prototypeIsEnumerable', 'constructor'];
+	    m = [
+	    		'toString', 
+	    		'toLocaleString', 
+	    		'valueOf', 
+	    		'hasOwnProperty', 
+	    		'isPrototypeOf', 
+	    		'prototypeIsEnumerable', 
+	    		'constructor'
+	    	];
 
     if(l) {
          for (var n = 0; n < m.length; n++) {
@@ -107,34 +115,62 @@ var Store = (function(){
 			return {title:title};
 		};
 
-		this.reactjs = {};
+		this.vuejs = {'__vue_update':null};
 
-		this.reactjs.mixin = ((function(){
-		
-			/* @TODO: trivial testing for ReactJS */
+		this.vuejs.mixin = {
+			created:function(){
+				var _self = this;
+				that.vuejs.__vue_update = function(t, k){
+					try{
+						_self[k] = this.getState(k);
+					}catch(e){}	
+				};
+			},
+			beforeMount:function(){
+				
+				that.setChangeListener(that.vuejs.__vue_update);
+			},
+			data:function(){
 
-			this.willMount = function(){
-
-				that.setChangeListener(this.forceUpdate.bind(this));
+				return store.getState();
+			},
+			beforeDestroy:function(){
+				that.unsetChangeListener(that.vuejs.__vue_update);
+				that.disconnet();
+				that.destroy();
 			}
+		};
 
-			this.willUnMount = function(s){
+		this.reactjs = {'__react_update':null};
 
-				that.unsetChangeListener(this.forceUpdate.bind(this));
-			};
+		this.reactjs.mixin = {
+		
+			/* @DONE: trivial testing for ReactJS */
 
-			this.getProps = function(){
+			componentWillMount:function(){
+
+				// a neat little trick applied to make sure changes made by legitimate `setState`
+				// calls are not overridden here in the predefined mixin [Functional setState]
+				that.reactjs.__react_update = this.setState.bind(
+					this, function(prevState, props){
+						return prevState;
+					}
+				);
+
+				that.setChangeListener(that.reactjs.__react_update);
+			},
+			componentWillUnMount:function(s){
+
+				that.unsetChangeListener(that.reactjs.__react_update);
+				that.disconnet();
+				that.destroy();
+			},
+			getDefaultProps:function(){
 
 				return that.getState();
-			};
-
-			return {
-				componentWillMount:this.willMount,
-				componentWillUnMount:this.willUnMount,
-				getDefaultProps:this.getProps
-			};
-
-		}).call(this.reactjs));
+			}
+			
+		};
 
 		this.toString = function(){
 
@@ -511,8 +547,12 @@ Futures = function(){
 	    // create a new state of the store data by applying a given
 	    // store callback function to the current history head
 	    if(typeof context == 'function'){
+
 	    	newStoreState = context(area, action.actionData);
 	    }else{
+	    	
+	    	area._aspect = action.actionKey;
+
 	    	newStoreState = fn.call(queueing, action, area);
 	    }
 
@@ -580,8 +620,8 @@ Futures = function(){
 		this.put = function(value){
 			
 			/* 
-				In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
-				we need to fix this by using IE proprietary methods 
+				In IE 8/9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
+				we need to fix this by using IE proprietary methods as async writes are bad for us ;)
 
 				Reference: https://nczonline.com/blog/2009/07/21/introduction-to-sessionstorage/ 
 			*/
@@ -598,11 +638,15 @@ Futures = function(){
 			}
 
 			try{
+
 				sessStore.setItem(key, setNormalized(value));
+
 			}catch(e){
 				
-				if(cachedStorageKeys[key]){
-					// we're in overwrite mode
+				if((key in cachedStorageKeys) 
+					&& cachedStorageKeys[key]){
+					
+					// we're in overwrite mode, so clear `key` out and push in update (below)
 					indexStart = win.name.indexOf(key);
 
 					indexEnd = win.name.indexOf('|', indexStart);
@@ -628,7 +672,17 @@ Futures = function(){
 				}
 			}
 			
-			triggerEvt(win.document, 'storesignal', {url:win.location.href,key:key,newValue:value,source:win}, win);
+			triggerEvt(
+					win.document, 'storesignal', 
+					{
+						url:win.location.href,
+						key:key,
+						newValue:value,
+						source:win,
+						aspect:this._aspect
+					}, 
+					win
+			);
 
 			return value;
 		};
@@ -705,7 +759,7 @@ Futures = function(){
 
 				for(var t=0; t < listeners.length; t++){
 						    			
-					listeners[t].call(stores[storeTitle], storeTitle);
+					listeners[t].call(stores[storeTitle], storeTitle, e.aspect);
 						    
 				}
 			}
@@ -900,7 +954,7 @@ Futures = function(){
 					returnVal = Boolean(callable.call(null, storeArray[prevIndex--], next));
 				}else{
 					callable = !0;
-					returnVal = true;
+					returnVal = callable;
 				}
 
 				return returnVal;
@@ -1065,7 +1119,7 @@ Futures = function(){
 		createActionInterface: function(dispatcher, vector){
 			
 
-			return function(data){
+			return function(data, stateAspectKey){
 
 				 // console.log('OUTER-FUNC: ', arguments.callee);
 
@@ -1080,6 +1134,7 @@ Futures = function(){
 				dispatcher.signal({
 					source:id,
 					actionType:vector,
+					actionKey:stateAspectKey || null,
 					actionData:data
 				});
 			}

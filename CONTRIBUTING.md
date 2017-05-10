@@ -37,3 +37,7 @@
 - See if there's a way to stop the propagation of _'storage'_ events whenever **Radixx** is making use of sessionStorage
 
 - Detect memory leaks and clean them up.
+
+- Build and Integrate support for GraphQL
+
+- Add store config options

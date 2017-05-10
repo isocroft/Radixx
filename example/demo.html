@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Radixx - Example App</title>
+	<script src="../dist/radixx.min.js"></script>
+	<script type="text/javascript">
+	;(function(w, r){
+		r.onDispatch(function(app_state){
+			/* fired when all synchronous/asynchronous 
+				mutations are completely done on the state */
+			console.log(JSON.stringify(app_state)); 
+		});
+
+		var registeredStores = [];
+		
+		/* creating an action - multiple actions can be created for a real-life application */
+		w.action = r.createAction({loadTodos:'LOAD_TODOS',saveTodo:'SAVE_TODO'});
+		
+		/* creating a store - multiple stores can be created for a real-life application */
+		/* there's a strict structure to how to define a store callback - MUST always return area.put(); - as calling the put() method this way triggeres all change listeners */
+		w.store = r.createStore('todos', function(action, area){
+						var todos; 
+						switch(action.actionType){
+							case 'LOAD_TODOS':
+								// action.actionData MUST be an array as seen
+								// from the action.loadTodos([ ... ]) call below
+								todos = action.actionData;
+							break;
+							case 'SAVE_TODO':
+								// area.get() is used to retrieve current state for this store
+								todos = area.get();
+								todos.push(action.actionData);
+							break;
+							default:
+								return null;
+							break;
+						}
+
+						// area.put() is used to write/insert a new state into the store
+						return area.put(todos);
+		}, []);
+
+		// setup a function to listen for change to the store
+		store.setChangeListener(function(){
+			// the this reference in here is the store itself
+			alert("STORE AFFECTED: " + this.getTitle());
+		});
+
+		// do something with each store created
+		r.eachStore(function(store, next){
+			// get the title of the store and push into an array
+			registeredStores.push(store.getTitle());
+			// move to the next store that has been created and do same as above with it
+			next();
+		});
+
+		// swapping the store callback with a new one
+		store.swapCallback(function(action, area){
+				var todos; 
+				switch(action.actionType){
+					case 'LOAD_TODOS':
+						todos = action.actionData;
+						/* 
+							setting up the format the state data should be stored before
+							it is put in storage.
+						*/ 
+						todos.toJSON = function(){
+							return this.map(function(val){
+								var todoTimeToDueDate = (new Date*1);
+								return {
+										is_overdue:todoTimeToDueDate > val.due_date_timestamp,
+										todo:val
+								};
+							});
+						};
+					break;
+					default:
+						return null;
+					break;
+				}
+
+				return area.put(todos);
+		});
+	}(this, this.Radixx));	
+	</script>
+</head>
+<body>
+	<ul id="todos"></ul>
+	<button type="button" disabled="disabled" id="undo-btn">UNDO</button>
+
+	<script type="text/javascript">
+		;(function(w, d){
+
+			// calling an action - an action triggers changes in the store (by extension the application state)
+			action.loadTodos([
+				{
+					text:'Buy flowers for my wife!', 
+					completed:true,
+					due_date_timestamp:1491144056023
+				},
+				{
+					text:'Write that website re-design proposal',
+					completed:false,
+					due_date_timestamp:1491144702573
+				}
+			]);
+
+			var mount_point = d.getElementById("todos");
+			var button = d.getElementById("undo-btn");
+			
+			function render(m){
+				var list = w.store.getState();
+				var li = null;
+
+				if(list.length == 0){
+					m.innerHTML = "";
+					return;
+				}
+
+				list.forEach(function(item, i){
+					li = d.createElement("li");
+					li.setAttribute("data-key", i);
+					li.setAttribute("data-todo-overdue", item.is_overdue);
+					li.setAttribute("data-todo-done", String(item.todo.completed));
+					li.appendChild(d.createTextNode(item.todo.text));
+					m.appendChild(li);
+				});
+			}
+				
+			button.disabled = !w.store.canUndo();
+			button.onclick = function(e){
+				// undo application state changes
+				w.store.undo();
+				this.disabled = !w.store.canUndo();
+				render(mount_point);
+			};
+
+			render(mount_point);
+
+		}(this, this.document));
+	</script>
+</body>
+</html>
