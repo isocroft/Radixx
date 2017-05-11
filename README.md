@@ -1,5 +1,7 @@
 # Radixx
 
+[![Build Status](https://travis-ci.org/isocroft/Radixx.svg?branch=master)](https://travis-ci.org/isocroft/Radixx)
+
 This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed and changed/updated. It resembles **Redux** in a lot of ways. 
 
 ## How to Use (Vanilla JS)
