@@ -1,6 +1,7 @@
 node_modules
+.travis.yml
+radixx.conf.js
 example
 src
 tests
-README.md
 CONTRIBUTING.md

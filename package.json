@@ -7,14 +7,16 @@
  ],
  "scripts":{
     "lint":"jshint src tests",
-    "test":"karma start radixx.conf.js --single-run",
+    "test":"karma start radixx.conf.js --single-run"
  },
- "author": {
-    "name": "Ifeora Okechukwu",
-    "email": "isocroft@gmail.com"
-  },
+ "authors": [
+        {
+            "name": "Ifeora Okechukwu",
+            "email": "isocroft@gmail.com"
+        }
+  ],
   "contributors": [
-      "Nil"
+      ""
   ],
   "license": "MIT",
   "repository": {
@@ -30,6 +32,9 @@
     "karma": "^0.12.31",
     "karma-firefox-launcher": "^0.1.4",
     "karma-jasmine": "^0.3.5"
+  },
+  "dependencies":{
+
   },
   "engines": {
     "node": ">= 0.10.25"

@@ -24,6 +24,8 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 <html>
 <head>
 	<title>Radixx - Example App</title>
+	<!-- relative paths apply -->
+	<script src="node_modules/radixx/dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
 		r.onDispatch(function(app_state){
@@ -325,7 +327,7 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 
 	var MyVueComponent = Vue.extend({
 			name:'radixx-powered',
-			mixins:[store.vuejs.mixins],
+			mixins:[store.vuejs.mixin],
 			prop:['gender'],
 			template:'<div><p>{{fullName}}</p>'+
 			'<input type="text" v-model="text">'+
@@ -934,5 +936,5 @@ MIT
 
 Please feel free to open an issue, fix a bug or send in a pull request. I'll be very glad you did. You can also reach me on Twitter [@isocroft](https://twitter.com/isocroft). See the **CONTRIBUTING.md** file for more details.
 
-[npm-url]: https://npmjs.com/package/Radixx
-[downloads-url]: https://npmjs.com/package/Radixx
+[npm-url]: https://npmjs.com/package/radixx
+[downloads-url]: https://npmjs.com/package/radixx

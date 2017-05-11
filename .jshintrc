@@ -9,5 +9,24 @@
         "afterEach": false,
         "spyOn": false
     }, 
-    "eqnull":true
+    "undef": true,
+    "unused": true,
+    /* strict: true, */
+    "boss": true,
+    /* dont' allow assignments to be evaluated as truthy/falsey */
+    "es5":false,
+    "asi":true,
+    "laxbreak":true,
+    "noempty":true,
+    "maxerr":50,
+    "eqnull":true,
+    "evil":false,
+    "curly":false,
+    "eqeqeq":false,
+    "immed":false,
+    "laxcomma":true,
+    "loopfunc":false,
+    "plusplus":false,
+    "latedef":false,
+    "newcap":true
 }
