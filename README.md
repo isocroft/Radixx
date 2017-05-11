@@ -1,8 +1,21 @@
 # Radixx
 
-This is a simple library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed and changed/updated. It resembles **Redux** in a lot of ways. 
+This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed and changed/updated. It resembles **Redux** in a lot of ways. 
 
 ## How to Use (Vanilla JS)
+
+- First, download/install it from **NPM**
+
+[NPM][npm-url]
+   
+[Download][downloads-url]
+
+```bash
+
+	$ npm install radixx
+```
+
+- Next, use it in your JavaScript application like so 
 
 ```html
 <!DOCTYPE html>
@@ -87,6 +100,8 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 
 				return area.put(todos);
 		});
+
+		console.log("stores registered: ", registeredStores.toString(), registeredStores.length);
 	}(this, this.Radixx));	
 	</script>
 </head>
@@ -113,24 +128,35 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 
 			var mount_point = d.getElementById("todos");
 			var button = d.getElementById("undo-btn");
-			var li = null;
-			var list = w.store.getState();
+			
+			function render(m){
+					var list = w.store.getState();
+					var li = null;
 
-			list.forEach(function(item, i){
-				li = d.createElement("li");
-				li.setAttribute("data-key", i);
-				li.setAttribute("data-todo-overdue", item.is_overdue);
-				li.setAttribute("data-todo-done", String(item.todo.completed));
-				li.appendChild(d.createTextNode(item.todo.text));
-				mount_point.appendChild(li);
-			});
+					if(list.length == 0){
+						m.innerHTML = "";
+						return;
+					}
+
+					list.forEach(function(item, i){
+						li = d.createElement("li");
+						li.setAttribute("data-key", i);
+						li.setAttribute("data-todo-overdue", item.is_overdue);
+						li.setAttribute("data-todo-done", String(item.todo.completed));
+						li.appendChild(d.createTextNode(item.todo.text));
+						m.appendChild(li);
+					});
+			}		
 
 			button.disabled = !w.store.canUndo();
 			button.onclick = function(e){
 				// undo application state changes
 				w.store.undo();
 				this.disabled = !w.store.canUndo();
+				render(mount_point);
 			};
+
+			render(mount_point);
 
 		}(this, this.document));
 	</script>
@@ -143,17 +169,17 @@ This is a simple library that implements the **Facebook Flux Architecture** with
 
 These are methods defined on the global **Radixx** object
 
-- **Radixx.createAction(** _Object_ actionCreationMap **)**
+- **Radixx.createAction(** _Object_ actionTagMap **)**
 
-> Used to create an action creators (in Flux Architecture parlance)
+> Used to create an action creators (in Flux Architecture parlance). An object literal having the action method names (as key) and the action tag (as value) is passed into this api method.
 
-- **Radixx.createStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ defaultStoreRepresentation] **)**
+- **Radixx.createStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ initialStoreState] **)**
 
 > Used to create a store to which action will be sent using action creators
 
 - **Radixx.onDispatch(** _Function_ dispatchListener **)**
 
-> Registers a function that is called whenever an action is disptached to the Hub (also called Dispatcher in Flux Architecture parlance)
+> Registers a function that is called whenever an action is disptached to the Hub (also called the `Dispatcher` in Flux Architecture parlance)
 
 - **Radixx.eachStore(** _Function_ storeIterator **)**
 
@@ -206,9 +232,9 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 ## Features
 
 - Finite Undo/Redo (cos we have got to have trade-offs - Performance suffers if you have infinite undo/redo as application state grows bigger)
-- Use of Mixins for ReactJS (even though most people think mixins are dead and composition should be the only thins used)
+- Use of Mixins for ReactJS and VueJS (even though most people think _mixins_ are dead and composition should be the only thing in used, i think mixins still have a place)
 - Can replace the store callback (similar to **replaceReducer()** in _Redux_)
-- An extended Loose Coupling between Radixx Dispatcher and Controllers/Controller Views.
+- An extended Loose Coupling between Radixx Dispatcher and Controllers/Components.
 - Configure the order in which the <q>dispacth</q> triggers the store callbacks.
 - A transparent way in separating mutation and asynchronousity in application state.
 - No need to **<q>emit</q>** change events from within a store registration callback.
@@ -227,7 +253,7 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 - Application UI State {a.k.a Volatile Data} -- **can't store** this in Radixx (Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
 - Application Data State {a.k.a Non-Volatile Data} -- **can store** this in Radixx (Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
 
-> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the view and {this.state} since {this.setState} is asynchronous in the way it operates.
+> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the DOM and {this.state} since {this.setState} is _asynchronous_ in the way it operates.
 
 
 ## About Redux (with respect to Radixx)
@@ -250,10 +276,10 @@ That being said, here is a round-up of what makes **Redux** a GREAT tool (for so
 
 # Troubles with Redux single store
 
-- A sizable amount of boilerplate code (especially with **connect()** and/or **mapStateToProps()**) is required to get Redux up and running.
+- A sizable amount of boilerplate code (especially with **connect()** and/or **mapStateToProps()** from _react-redux_ project) is required to get Redux up and running.
 - Dynamically structured state is impossible. (mature, complex apps need this the most).
 - Increased probability of state key(s) collisions between reducers (very likely in a big complex web app but highly unlikely in samll ones).
-- Global variables are bad always (This applies to the composition of the Redux application state itself).
+- Global variables are always a bad thing (This applies to the composition of the Redux application state itself) as you could `clobber` them unknowingly.
 - Performance suffers as your state tree gets larger (Immutability is a good thing...sometimes).
 - Each time the **connect()** decorator is called, it pulls in the entire application state (when using _react-redux_).
 
@@ -894,10 +920,17 @@ angular.module("appy.todos", [
 - Firefox 3.5+ (Gecko)
 - Safari 4.0+ (AppleWebkit)
 
+## Gotchas/Caveats
+
+- Trying to `swap` the store callback using **swapCallback()** before setting a store listener using **setChnageListener()** will always throw a type error.
+
 ## License
 
 MIT
 
 ## Contributing
 
-Please feel free to open an issue or send in a pull request. I'll be very glad you did. You can also reach me on Twitter [@isocroft](https://twitter.com/isocroft). See the **CONTRIBUTING.md** file for more details.
+Please feel free to open an issue, fix a bug or send in a pull request. I'll be very glad you did. You can also reach me on Twitter [@isocroft](https://twitter.com/isocroft). See the **CONTRIBUTING.md** file for more details.
+
+[npm-url]: https://npmjs.com/package/Radixx
+[downloads-url]: https://npmjs.com/package/Radixx

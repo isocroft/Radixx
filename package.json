@@ -1,0 +1,37 @@
+{
+ "name":"radixx",
+ "version":"0.0.4",
+ "description":"A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
+ "scripts":{
+    "lint":"grunt js-lint"
+ },
+ "author": {
+    "name": "Ifeora Okechukwu",
+    "email": "isocroft@gmail.com"
+  },
+  "contributors": [
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/isocroft/Radixx"
+  },
+  "dependencies": {
+  
+  },
+  "homepage": "https://github.com/isocroft/Radixx",
+  "devDependencies": {
+    "jasmine-core": "^2.2.0",
+    "karma": "^0.12.31",
+    "karma-firefox-launcher": "^0.1.4",
+    "karma-jasmine": "^0.3.5"
+  },
+  "engines": {
+    "node": ">= 0.10.25"
+  },
+  "main":"dist/radixx.min.js",
+  "readmeFilename": "README.md",
+  "bugs": {
+    "url": "https://github.com/isocroft/Radixx/issues"
+  }
+}
