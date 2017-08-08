@@ -1,22 +1,23 @@
 {
- "name":"radixx",
- "version":"0.0.4",
- "description":"A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
- "keywords":[
+  "name": "radixx",
+  "version": "0.1.0",
+  "description": "A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
+  "keywords": [
     "Flux"
- ],
- "scripts":{
-    "lint":"jshint src tests",
-    "test":"karma start radixx.conf.js --single-run"
- },
- "authors": [
-        {
-            "name": "Ifeora Okechukwu",
-            "email": "isocroft@gmail.com"
-        }
+  ],
+  "scripts": {
+    "lint": "jshint src tests",
+    "benchmark": "babel-node benchmark.js",
+    "test": "karma start radixx.conf.js --single-run"
+  },
+  "authors": [
+    {
+      "name": "Ifeora Okechukwu",
+      "email": "isocroft@gmail.com"
+    }
   ],
   "contributors": [
-      ""
+    "nil"
   ],
   "license": "MIT",
   "repository": {
@@ -31,17 +32,24 @@
     "jasmine-core": "^2.2.0",
     "karma": "^0.12.31",
     "karma-firefox-launcher": "^0.1.4",
-    "karma-jasmine": "^0.3.5"
+    "karma-jasmine": "^0.3.5",
+    "benchmark": "~1.0.0",
+    "babel": "~5.8.38",
+    "babelify": "~6.4.0"
   },
-  "dependencies":{
-
-  },
+  "dependencies": {},
   "engines": {
     "node": ">= 0.10.25"
   },
-  "main":"dist/radixx.min.js",
+  "main": "src/radixx.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
-  }
+  },
+  "files": [
+    "tests",
+    "example",
+    "src/*.js",
+    "*.md"
+  ]
 }

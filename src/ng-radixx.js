@@ -1,6 +1,6 @@
  /*!
   * @lib: ngRadixx
-  * @version: 0.0.2
+  * @version: 0.1.0
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -8,7 +8,7 @@
   * @desc: AngularJS 1.x helper library for radixx apps
   */
 
-;(function(w, a){
+;(function(w, d, a){
 
 	if(!a){
 		throw new Error("ngRadixx requires [AngularJS] v1.x");
@@ -48,12 +48,13 @@
 				Since "$get()" gets called only once, our config 
 			   	is only added once - so also our dispatch handler  ;)
 			*/	
+			setTimeout(function(){
 
-			$window.Radixx.config(config);
+				$window.Radixx.configure(config);
 
-			$window.Radixx.onDispatch(rootScopeMapper($injector)); 
+				$window.Radixx.onDispatch(rootScopeMapper($injector)); 
 
-
+			}, 0);
 
 			return new function(){
 
@@ -66,10 +67,20 @@
 
 				// Adapter Method here
 
-				this.createStore = function(storeTitle, storeCallback){
+				this.createStore = function(storeTitle, storeCallback, defaultStateObj){
 
-					return $window.Radixx.createStore(storeTitle, storeCallback);		
+					return $window.Radixx.createStore(storeTitle, storeCallback, defaultStateObj);		
 				};	
+
+				this.eachStore = function(func){
+
+						return $window.Radixx.eachStore(func);
+				};
+
+				this.requestAggregator = function(){
+
+						return $window.Radixx.requestAggregator();
+				};
 
 			}
 		}];
@@ -79,4 +90,4 @@
 	ngRadixx.provider("$ngRadixx", ngRadixxProvidence);
 
 
-}(this, this.angular));
+}(this, this.document, this.angular));

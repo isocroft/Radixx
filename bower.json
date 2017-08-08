@@ -1,0 +1,23 @@
+{
+  "name": "radixx",
+  "version": "0.1.0",
+  "description": "A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
+  "main": "src/radixx.js",
+  "authors": [
+    "Ifeora Okechukwu"
+  ],
+  "modules": [
+    "global",
+    "amd"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/isocroft/Radixx",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "tests",
+    "/*.json",
+    "radixx.*"
+  ]
+}

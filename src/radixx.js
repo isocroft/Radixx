@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.0.4
+  * @version: 0.1.0
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -26,6 +26,35 @@
 var Hop = ({}).hasOwnProperty,
 
 Slc = ([]).slice,
+
+Values = {
+	typesMap:{
+            "number":Number,
+            "array":Array,
+            "object":Object,
+            "string":String,
+            "date":Date,
+	    	"regexp":RegExp,	
+            "function":Function
+	},
+	isOfType:function(type, value)
+		
+		var type = type.toLowerCase();
+		
+		if(typeof type === 'function'){
+			
+			return type(value);
+		}
+
+		else if(typeof type === 'string'
+					&& (type in this.typesMap)){
+			return (/^string|function$/.test(typeof value)) 
+						|| (Object(value) instanceof this.typesMap[type]);
+		}
+
+		return false;
+	}
+},
 
 _each = function (obj, iterator, context){
 	
@@ -452,6 +481,10 @@ Futures = function(){
 
 	    mode = win.document.documentMode || 0, 
 
+	    config = {
+
+  	},
+
 	    watchers = [
 
 	],
@@ -527,6 +560,23 @@ Futures = function(){
 		    return true;
     },
 
+    /*
+
+     Radixx.createAction({
+		// 'doThig' key used to identify an action call name
+		'doThing':{
+				type:'DO_THING',
+				// define what the payload for this action should be and look like
+				actionDefinition:[Radixx.Payload.type.array]
+		}	
+	});
+
+
+	if(!Values.isOfType("object", action.actionData)){
+		return "Error: Action Data Invalid for action:("+action.actionType+")";
+	}
+
+	*/
 
 	operationOnStoreSignal = function(fn, queueing, action, area) { 
 
@@ -773,8 +823,10 @@ Futures = function(){
 			//win.addEventListener('storage', stateWatcher, false);
 			win.document.addEventListener('storesignal', stateWatcher, false);
 		}else if(win.document.attachEvent){
-			/* IE 8 expects the handler to be bound to the document 
+			/* IE 8 expects the 'storage' event handler to be bound to the document 
 				and not to the window */
+
+
 			//win.document.attachEvent('onstorage', stateWatcher);
 			win.document.attachEvent('onstoresignal', stateWatcher);
 		}
@@ -858,7 +910,7 @@ Futures = function(){
 
 		var contextFn = function(a, d){ return a.put(d); };
 
-		operationOnStoreSignal.apply(contextFn, [observers[hydrateAction.target], null, hydrateAction, (new Area(title))]);
+		operationOnStoreSignal.apply(contextFn, [observers[hydrateAction.target], null, hydrateAction, (new Area(hydrateAction.target))]);
 	};
 
 	Dispatcher.prototype.signal = function(action){ 
@@ -1129,7 +1181,13 @@ Futures = function(){
 					dispatchRegistry[id].actionTypes.push(
 						vector
 					);
-				}	
+				}
+
+				if(!Values.isOfType("object", data)){
+
+					throw "Error: Action Data Invalid for action:("+vector+")";
+				}
+				// @TODO: implement middlewares trigger here	
 				
 				dispatcher.signal({
 					source:id,
@@ -1199,6 +1257,29 @@ function Hub(){
 		this.toString = function(){
 			return "[object Hub]";
 		}
+
+		this.Payload = {
+			type:{
+				 "array":"array",
+				 "date":"date",
+				 "string":"string",
+				 "regexp":"regexp",
+				 "function":"function",
+				 "number":{
+				 	Int:function(value){
+				 		return isFinite(value) && (value === parseInt(value))
+				 	},
+				 	Float:function(value){
+				 		return isFinite(value) && (value === parseFloat(value))
+				 	}
+				 },
+				 any:{
+				 	Mixed:function(value){
+
+				 	}
+				 }
+			}
+		}
 };
 
 // @TODO: figure out how to use this to manipulate across these 2 different ypes of application state data more efficiently (if any)
@@ -1208,7 +1289,7 @@ function Hub(){
 
 Hub.prototype.constructor = Hub;
 
-Hub.prototype.config = function(config){
+Hub.prototype.configure = function(config){
 
 	Observable.configureDispatcher(config);
 };
