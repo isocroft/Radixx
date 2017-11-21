@@ -846,7 +846,7 @@ angular.module("appy.todos", [
 
 	/* PRESENTATION COMPONENT */
 
-	// defined with lifecycle hooks
+	// not defined with lifecycle hooks
 
 	var ShoeComponent = React.createClass({
 			getStyle: function(){

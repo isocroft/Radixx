@@ -66,6 +66,11 @@ suite
           retesting:[]
       });
   })
+  .add('Radixx.store#state', function() {
+
+      console.log(store.getState('retesting'));
+      
+  })
   .add('Radixx.action#dispatch', function() {
     
       action.changeTesting(2);

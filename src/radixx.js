@@ -1173,7 +1173,7 @@ Futures = function(){
 
 			return function(data, stateAspectKey){
 
-				 // console.log('OUTER-FUNC: ', arguments.callee);
+				 // console.log('OUTER-FUNC: ', this.constructor.caller);
 
 				var id = this.getId();
 
@@ -1185,8 +1185,9 @@ Futures = function(){
 
 				if(!Values.isOfType("object", data)){
 
-					throw "Error: Action Data Invalid for action:("+vector+")";
+					throw "Error: Action Data Invalid for action :("+vector+")";
 				}
+
 				// @TODO: implement middlewares trigger here	
 				
 				dispatcher.signal({
@@ -1318,9 +1319,9 @@ Hub.prototype.createAction = function(vectors){
 		Action.apply(this, Slc.call(arguments));
 	}
 
-	var novelAction = new _action(Observable.registerAction());
+	var actionObject = new _action(Observable.registerAction());
 
-	return Observable.setActionVectors(novelAction, vectors);
+	return Observable.setActionVectors(actionObject, vectors);
 };
 
 Hub.prototype.createStore = function(dataTitle, registerCallback, defaultStateObj){
@@ -1329,11 +1330,11 @@ Hub.prototype.createStore = function(dataTitle, registerCallback, defaultStateOb
 		Store.apply(this, Slc.call(arguments));
 	}
 
-	var novelStore = new _store(dataTitle);
+	var storeObject = new _store(dataTitle);
 
-	Observable.setStoreObserver(novelStore, registerCallback, defaultStateObj);
+	Observable.setStoreObserver(storeObject, registerCallback, defaultStateObj);
 
-	return novelStore;
+	return storeObject;
 };
 
 return (new Hub());

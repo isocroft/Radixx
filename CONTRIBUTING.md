@@ -15,24 +15,59 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 	// below is the form of the implementation
 
-	Radixx.attachMiddleware(function(acitonObj, next){
+	Radixx.attachMiddleware({
+
+		actioner:function(acitonObj, next, flash){
 		
-		if(actionObj.actionType === 'STEP_UP'){
-			actionObj.actionData = [{
-				"something":actionObj.actionData;
-			}];
+				if(actionObj.actionType === 'STEP_UP'){
+					actionObj.actionData = [{
+						"something":actionObj.actionData;
+					}];
+
+					return next(
+						null
+					);
+				}
+
+				if(actionObj.actionType === 'PUSH_DOWN'){
+					actionObj.actionData.isFetching = true;
+					flash(actionObj); // an action flash lets us bypasses the internal (Undo/Redo) history of Radixx but triggers change listeners
+				}
+				
+				let promise = new Promise((resolve, reject) => {
+					setTimeout(() => {	
+					 		var data = {};
+					 		actionObj.actionData.isFetching = false;
+					 		resolve(
+					 			next(
+					 				data
+					 			)
+					 		); // signal to Radixx that it should call the dispatcher
+
+					}, 4500);
+				});
+
+				return promise;
+		},
+
+		logger:function(actionObj, next, data){
+
+			 console.log("::", JSON.stringify(actionObj));
+
+			 	next(
+			 		data
+			 	);
+
+		},
+
+		watcher:function(actionObj, next, data){
+
+			next(
+				data
+			);
 		}
-		
-		let promise = new Promise((resolve, reject) => {
-			setTimeout(() => {	
-			 		
-			 		next(resolve(actionObj)); // signal to Radixx that it should call the dispatcher
-
-			}, 4500);
-		});
-
-		return promise;
 	});
+
 
 	let action = Radixx.createAction({
 			'stepUp':{
@@ -41,9 +76,13 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 			}
 	});
 	
-	action.stepUp({}, 'dormList').then(() => { 
+	action.stepUp({index:10}, 'openList').then((actionObj) => { 
 		
-		action.doIt([]);
+		return action.doIt([
+			actionObj
+		]);
+
+	}).then(() => {
 
 	});
 
@@ -74,8 +113,6 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 	});
 ```
 
-- Update store API routine/method signature for implementing undo/redo function specific to store.
-
 - Detect places where memory leaks happen or are likely to happen in the codebase and clean them up.
 
 - Optimize <q>onDispatch</q> event not to fire only when any store data ACTUALLY changes by taking a simple diff of the state object and trigger store callbacks conditionally (trigger only when store state data changes)
@@ -85,5 +122,7 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 - See if there's a way to stop the propagation of _`storage`_ events whenever **Radixx** is making use of [sessionStorage] only
 
 - Build and Integrate support for GraphQL (if possible build in a small and efficient GraphQL client as part of Radixx)
+
+- Update store API routine/method signature for implementing undo/redo function specific to store.
 
 - Add _bower_ and _yarn_ package manager support
