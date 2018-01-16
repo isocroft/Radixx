@@ -88,6 +88,47 @@ Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */
 		return _curry(this, [].slice(arguments, 1), cxt); 
 }
 
+/**
+    Culled from:
+
+    https://stackoverflow.com/questions/14358599/object-doesnt-support-this-action-ie9-with-customevent-initialization
+
+    Though IE 9 to IE 11 supports the CustomEvent constructor, IE throws an error {Object doesn't support this action} 
+    whenever it's used. This weird behaviour is fixed below
+*/
+
+;(function (w, d) {
+	   function CEvent ( event, params ) {
+		var t, evt;
+		params = params || { bubbles: false, cancelable: false, detail: undefined };
+		try{
+		    evt = d.createEvent( 'CustomEvent' );
+		    evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
+		}catch(e){
+		    evt = d.createEventObject(w.event);
+			evt.cancelBubble = !params.bubbles;
+                        evt.returnValue = !params.cancelable;
+			if(typeof params.detail === "object"){
+				// set expando properties on event object
+				for(t in params.detail){
+				   if((({}).hasOwnProperty.call(params.detail, t))){
+					   evt[t] = params.detail[t];
+				   }
+				}
+			}	
+		}
+		return evt;
+	  };
+	  try {
+	    var ce = new w.CustomEvent('test');
+	  } catch(e) {
+
+	      CEvent.prototype = Object.create(((w.Event && w.Event.prototype) || {}));
+	      w.CustomEvent = null;
+	      w.CustomEvent = CEvent;
+	  }
+})(wind, wind.document);
+
 // 'use strict';  Can't [use strict] mode cos i wish to use {void 0} to check nulled/undefined vars
 
 Object.keys = Object.keys || function (fu){
@@ -477,7 +518,7 @@ Futures = function(){
 
 	var $instance = null,
 
-	    sessStore = win.sessionStorage,
+	    sessStore = (win.top !== win || !win.sessionStorage ? (win.opera && !(Hop.call(win, 'opera')) ? win.opera.scriptStorage : {} ) : win.sessionStorage),
 
 	    mode = win.document.documentMode || 0, 
 
@@ -536,29 +577,18 @@ Futures = function(){
 
 	triggerEvt = function(target, eType, detail, globale){
 			   									
-			var t, evt = ('Event' in globale)? new Event(eType) : null, dispatch = null;
+			var evt = new CustomEvent(eType, {detail:detail,cancelable:true,bubbles:false}), dispatch = function(){ return false; };
 
-
-			if(evt === null){
-				(('CustomEvent' in globale) && !globale.document.documentMode ? new CustomEvent(eType) : globale.document.createEventObject());
+			if((!('target' in evt)) && evt.cancelBubble === true){
+				target.setCapture(true);
 			}
-
 			// set up cross-browser dispatch method.
-			dispatch = target[ (globale.document.documentMode || (globale.document.execScript && String(globale.document.execScript).indexOf("native") > -1)) ? "fireEvent" : "dispatchEvent" ];
+			dispatch = target[ (!('target' in evt) ? "fireEvent" : "dispatchEvent") ];
 	 
-			if(typeof detail === "object"){
-					// set expando properties on event object
-					for(t in detail){
-					   if((({}).hasOwnProperty.call(detail, t))){
-						   evt[t] = detail[t];
-					   }
-					}
-		    }
-		    // Actually, including support for IE6-8 here ;)
-		    dispatch.apply(target, ((((globale.attachEvent || {}).toString()).indexOf("native") > -1) ? ["on"+eType , evt] : [evt])); 
+		    	// Actually, including support for IE6-8 here ;)
+		    	return dispatch.apply(target, (!('target' in evt) ? ["on"+eType, evt ] : [evt])); 
 		   
-		    return true;
-    },
+ 	},
 
     /*
 
@@ -633,7 +663,7 @@ Futures = function(){
 	   		 return null;
 
 		try{
-			return (win.JSON)? JSON.parse(val) : (new Function('return '+val)());
+			return JSON.parse(val);
 		}catch(e){
 			return String(val);
 		}
@@ -654,13 +684,33 @@ Futures = function(){
 	   
     getAppState = function(){
 
-		var appStateData = {}, key;		
+		var appStateData = {}, key, indexStart, indexEnd, values;		
+		
+	    	if(('key' in sessStore) 
+		   			&& (typeof sessStore.key == 'function')){
+				// We iterate this way so we can support IE 8 + other browsers
+				for(var i=0; i < sessStore.length; i++){
+					key = sessStore.key(i);
+					appStateData[key] = getNormalized(sessStore.getItem(key)) || null;
+				}
+    		}else{
+			
+			
+				for(var i = 0; i < storeKeys.length; i++){
+					key = storeKeys[i];
+					
+					if(cachedStorageKeys[key]){
 
-		// We iterate this way so we can support IE 8 + other browsers
-		for(var i=0; i < sessStore.length; i++){
-			key = sessStore.key(i);
-			appStateData[key] = getNormalized(sessStore.getItem(key));
-		}
+						indexStart = win.name.indexOf(key);
+
+						indexEnd = win.name.indexOf('|', indexStart);
+
+						values = (win.name.substring(indexStart, indexEnd)).split(':=:');
+
+					}
+					appStateData[key] = getNormalized(values[1]) || null;
+				}
+			}
 
 		return appStateData;
 	},
@@ -670,10 +720,10 @@ Futures = function(){
 		this.put = function(value){
 			
 			/* 
-				In IE 8/9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
-				we need to fix this by using IE proprietary methods as async writes are bad for us ;)
+				In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
+				we need to fix this by using IE proprietary methods 
 
-				Reference: https://nczonline.com/blog/2009/07/21/introduction-to-sessionstorage/ 
+				Reference: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
 			*/
 			
 			var indexStart, 
@@ -690,15 +740,15 @@ Futures = function(){
 			try{
 
 				sessStore.setItem(key, setNormalized(value));
-
+				
 			}catch(e){
 				
-				if((key in cachedStorageKeys) 
-					&& cachedStorageKeys[key]){
-					
+				/* This is a fallback to support Opera Mini 4.4+ on Mobile */
+				
+				if(cachedStorageKeys[key]){
 					// we're in overwrite mode, so clear `key` out and push in update (below)
 					indexStart = win.name.indexOf(key);
-
+					
 					indexEnd = win.name.indexOf('|', indexStart);
 
 					win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
@@ -706,13 +756,14 @@ Futures = function(){
 
 				if(win.name === ""){
 
-					win.name = key + '=' + setNormalized(value) + '|';
+					win.name = key + ':=:' + setNormalized(value) + '|';
 
 				}else{
 
-					win.name += key + '=' + setNormalized(value) + '|';
+					win.name += key + ':=:' + setNormalized(value) + '|';
 
 				}
+				
 				cachedStorageKeys[key] = 1;
 			}
 
@@ -723,7 +774,8 @@ Futures = function(){
 			}
 			
 			triggerEvt(
-					win.document, 'storesignal', 
+					win.document, 
+					'storesignal', 
 					{
 						url:win.location.href,
 						key:key,
@@ -740,24 +792,42 @@ Futures = function(){
 		this.get = function(){
 
 			var indexStart, indexEnd, values;
-
+			
+			/* This is a fallback to support Opera Mini 4.4+ on Mobile */
+			
 			if(cachedStorageKeys[key]){
 
 				indexStart = win.name.indexOf(key);
 
 				indexEnd = win.name.indexOf('|', indexStart);
 
-				values = (win.name.substring(indexStart, indexEnd)).split('=');
+				values = (win.name.substring(indexStart, indexEnd)).split(':=:') || [0, 0];
 
 				return getNormalized(values[1]) || null;
-			}
+			}else{
 
-			return getNormalized(sessStore.getItem(key)) || null;
+				return getNormalized(sessStore.getItem(key)) || null;
+			}
 		};
 
 		this.del = function(){
 
-			return sessStore.removeItem(key);
+				var indexStart, 
+				indexEnd;
+				/* This is a fallback to support Opera Mini 4.4+ on Mobile */
+			
+				if(cachedStorageKeys[key]){
+					
+					// we're in delete mode
+					indexStart = win.name.indexOf(key);
+					
+					indexEnd = win.name.indexOf('|', indexStart);
+
+					win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
+				}else{
+					
+					return sessStore.removeItem(key);
+				}
 		};
 
 		return this;
