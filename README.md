@@ -1464,7 +1464,7 @@ angular.module("appy.todos", [
   		init: function () {
 			var that = this;
     			this.on('change', function data) {
-      				action.addItem(data);
+      				actions.addItem(data);
     			});
 			
 			this.on('teardown', function(){
@@ -1500,7 +1500,9 @@ angular.module("appy.todos", [
 
 ## Gotchas/Caveats
 
-- Trying to `swap` the store callback using **swapCallback()** before setting a store listener using **setChnageListener()** will always throw a type error.
+- Trying to `swap` the store callback using the **swapCallback()** method before setting a store listener using **setChnageListener()** will always throw a type error.
+
+- Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called.
 
 ## License
 
