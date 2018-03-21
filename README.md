@@ -350,7 +350,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 ```
 
 
-## Radixx APIs (Methods)
+## DOCUMENTATION - Radixx APIs (Methods)
 
 These are methods defined on the global **Radixx** object
 
@@ -380,7 +380,17 @@ These are methods defined on the global **Radixx** object
 
 - **Radixx.configure(** _Object_ configurationObject **)**
 
-> Used to configure the Radixx store(s).
+> Used to configure the Radixx store(s). 
+
+## Radixx Configuration Options
+
+- **runtime.spaMode**
+
+> Whether or not the app in an SPA (Single Page Application). If the app is a SPA, then the _shutDownHref_ option doesn't have any effect.
+
+- **runtime.shutDownHref**
+
+> The Href/Link upon which Radixx should destroy all stores and automatically shutdown and triggers the "onShutDown" handler function.
 
 
 ## Radixx APIs (Properties)
@@ -542,6 +552,20 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 > NOTE: **Radixx** is not an outright drop-in replacement for **Redux** or **Vuex** but a nice alternative when **Redux** or **Vuex** doesn't quite fit your use case.
 
 
+## Tests
+
+This project uses **Jasmine** for tests and runs them on the command line with **Karma** .You can run to check the quality of code written by running the tests in 2 ways
+
+1. run the following command in the root folder after cloning the repo
+
+```bash
+
+	$ npm run test
+```
+
+2. open the _tests/specRunner.html_ file in any browser of your choice using the file:/// protocol
+
+
 ## Examples
 
 >VueJS 1.x/2.x
@@ -578,7 +602,7 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 			return stuffs;
 	}, {
 		profile:{
-			fullName:'John Doe',
+			fullName:'John',
 			phone:'08011111111'
 		}
 	});
@@ -637,6 +661,9 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 							action,
 							prevState
 						);
+						
+						// you could chose to emit an event here too..
+						_this.$emit('middlewareEvent', {});
 					});
 
 				},	
@@ -957,15 +984,13 @@ angular.module("appy.todos", [
 			$todoStore.setChangeListener(listen);
 		});
 
-		$scope.$on('$beforeUnload', function(event, confirmation){
+		$scope.$on('$unload', function(event, end){
 
 			if($scope.todos.isSavedToPouchDB){
-				$todoStore.disconnect();
-				$todoStore.destroy();
-				return;
+				// do something with PouchDB
+				
 			}	
 
-			confirmation.message = "You have unsaved todos!";
 			event.preventDefault();
 
 		});
@@ -1017,8 +1042,16 @@ angular.module("appy.todos", [
 				action,
 				prevState
 			);
+			
+			// you can use the $rootScope to emit event here too...
 
 		});
+		
+		$window.onunload = function(e){
+		
+			$rootScope.$emit('$unload', null);
+			
+		};
 	
 		console.log("app is good to go!");
 
@@ -1054,6 +1087,8 @@ angular.module("appy.todos", [
  	 *	# Only use `makeTrait` method of STORE(s) to create Mixins for the CONTAINER and PRESENTATON Components
  	 * 	# Only insert UI state (which is transient and non-persistent) in the state object of PRESENTATION Components
  	 *	# The `setState` method MUST NEVER be used in CONTAINER Components
+	 *
+	 * You can also do without CONTAINER components and have just ROOT and PRESENTATION componets for a simpler web application
  	 *
  	 */
 
@@ -1070,7 +1105,7 @@ angular.module("appy.todos", [
 	// Asuuming to use socket.io (client-side)
 	var socket = io.connect('http://locahost:8005', {timeout:300000, 'reconnection':true, transports:["websockets"]}),
 	
-	action = Radixx.makeActionCreators({
+	actions = Radixx.makeActionCreators({
 		'loadShoes':{
 				type:'LOAD_SHOES',
 				actionDefinition:Radixx.Payload.type.array
@@ -1086,7 +1121,9 @@ angular.module("appy.todos", [
 	}),
 
 	store = Radixx.makeStore('shoes', function(action, state){
+		
 		var stub = state;
+		
 		switch(action.actionType){
 			case 'ADD_SHOE':
 				stub.shoes.push(action.actionData);
@@ -1137,7 +1174,7 @@ angular.module("appy.todos", [
 				);
 			},
 			componentDidUpdate:function(){
-
+				
 				socket.emit('shoe-okay', this.props.shoes);
 			},
 			_post:function(_url, _data){
@@ -1196,7 +1233,11 @@ angular.module("appy.todos", [
 			switch(actionType){
 
 				case "ADD_SHOE":
-
+					
+					// make an AJAX request to the server
+					this._post('http://localhost:5600/shoes', this.getState('shoes')).then(function(data){
+						alert("Shoe added sucessfully!");
+					});
 				break;
 			};
 
@@ -1233,9 +1274,12 @@ angular.module("appy.todos", [
 			onKeys:function(e){
 
 				this.setState((prevState, props) => {
+					
 					if(prevState.addingShoe === false){
+					
 						return {addingShoe:true};
 					}
+					
 					return prevState;
 				});
 
@@ -1251,11 +1295,7 @@ angular.module("appy.todos", [
 					name:form.elements['add'].value
 				};
 
-				action.addShoe(payload).then(function(data){
-					if(data !== null){
-						this._post('http://localhost:5600/shoes', data)
-					}
-				});
+				action.addShoe(payload);
 			},
 			mixins:[PresentationTrait],
 			render:function(){
@@ -1333,7 +1373,7 @@ angular.module("appy.todos", [
 	var TheApp = React.createClass({
 			_loadAppData:function(){
 
-				axios.get("https://getalldata.example.com").done(function(response){
+				axios.get("https://getalldata.example.com").then(function(response){
 					Radixx.eachStore(function(store, next){
 
 						var state = store.getState(), title = "";
@@ -1347,6 +1387,8 @@ angular.module("appy.todos", [
 								
 						next();
 					});
+				}).catch(function(error){
+					console.log(error);
 				});
 			},
 			componentWillMount:function(){
@@ -1451,7 +1493,7 @@ angular.module("appy.todos", [
 
 - IE 8.0+ (Trident)
 - Edge (EdgeHTML)
-- Opera 9.0+ (Presto, Blink)
+- Opera 10.0+ (Presto, Blink)
 - Chrome 3.0+ (Webkit, Blink)
 - Firefox 3.5+ (Gecko)
 - Safari 4.0+ (AppleWebkit)
@@ -1464,7 +1506,7 @@ angular.module("appy.todos", [
 
 MIT
 
-## Live Projects [that use _Radixx_ for state management in production]
+## Live Projects { that use _Radixx_ for state management in production }
 
 - [**NTI Portal**](https://my.nti.edu.ng) - National Teachers Institute Kaduna
 - [**Stitch NG**](https://app.stitch.ng/cabinet) - (Coming Soon) Fashion Technology Product
