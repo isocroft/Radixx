@@ -4,7 +4,12 @@ var Benchmark = require('benchmark'),
 
     suite = new Benchmark.Suite(),
 
-    action,
+    __callback = function(actionType, actionKey){
+
+          console.log("actionFired: ", storeTitle);
+    },
+
+    actions,
 
     store;
 
@@ -14,26 +19,39 @@ Radixx.onDispatch(function(appstate){
 	   console.log("Entire Application State: ", appstate);
 });
 
+Radixx.attachMiddleware(function(next, action, prevState){
+
+    next(
+      action,
+      prevState
+    );
+
+});
+
 
 suite
   .add('Radixx#configure', function(){
 
       Radixx.configure({
-
+          runtime:{
+              spaMode:true
+          },
+          persistenceEnabled:true
       });
   })
-  .add('Radixx#createAction', function() {
+  .add('Radixx#makeActionCreators', function() {
     
-      action = Radixx.createAction({
+      actions = Radixx.makeActionCreators({
          'changeTesting':{
-            type:'CHANGE_TESTING',
-            actionDefinition:[Radixx.Payload.types.number.isInt]
+              type:'CHANGE_TESTING',
+              actionDefinition:Radixx.Payload.type.number
          }
       });
   })
-  .add('Radixx#createStore', function() {
+  .add('Radixx#makeStore', function() {
     
-      store = Radixx.createStore('test', function(action, state){
+      store = Radixx.makeStore('test', function(action, state){
+
             var appmodels = state;
             
             switch(action.actionType){
@@ -50,25 +68,21 @@ suite
 
             return appstate;
 
-      }, {testing:1,retesting:null});
+      }, {testing:1});
   })
   .add('Radixx.store#listen', function() {
     
-      store.setChangeListener(function(storeTitle, actionKey){
-
-          console.log("actionFired: ", storeTitle);
-      });
+      store.setChangeListener(__callback);
   })
   .add('Radixx.store#hydrate', function() {
     
       store.hydrate({
-          testing:5.2,
-          retesting:[]
+          testing:5.2
       });
   })
   .add('Radixx.store#state', function() {
 
-      console.log(store.getState('retesting'));
+      console.log(store.getState('testing'));
       
   })
   .add('Radixx.action#dispatch', function() {
@@ -76,6 +90,8 @@ suite
       action.changeTesting(2);
   })
   .add('Radixx.store#destroy', function() {
+
+      store.unsetChangeListener(__callback);
     
       store.disconnect();
       store.destroy();

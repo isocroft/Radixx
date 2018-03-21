@@ -1,20 +1,97 @@
 /** 
  * @title: Unit Testing
- * @project: Radixx
+ * @project: Radixx Flux Library
  */
 
 
-describe("Radixx: ", function() {
+describe("The Radixx Flux Library :", function() {
   
-            var action = Radixx.createAction({
-            		'createItem':'CREATE_ITEM'
+            var actions = Radixx.makeActionCreators({
+            		'createItem':{
+            			type:'CREATE_ITEM',
+            			actionDefinition:Radixx.Payload.type.array
+            		},
+            		'addItem':{
+            			type:'ADD_ITEM',
+            			actionDefinition:Radixx.Payload.type.object
+            		}
             });
+
             var Routines = {
             		storeCallbackSpy:jasmine.createSpy('storeCallbackSpy() spy').and.callFake(
-            				function(){  return []; }
-            		)
+            				function(action, state){  
+
+            					var items = state;
+
+            					switch(action.actionType){
+            						case "CREATE_ITEM":
+            							
+            							if(items.length === 0){
+            								items.push(action.actionData);
+            							}
+            						break;
+            						case "ADD_ITEM":
+
+            							items.push(action.actionData);
+            						break;
+            						default:
+
+            						break;
+            					}
+
+            					return items; 
+            				}
+            		),
+            		middlewareCallbackSpy:jasmine.createSpy('middlewareCallbackSpy() spy').and.callFake(
+            				function(next, action, prevState){
+
+				            	console.log('before-action', prevState);
+
+				            	console.log('action-type', action.actionType);
+
+				            	console.log('action-data', action.actionData);
+
+				            	var nextState = next(
+				            		action,
+				            		prevState
+				        		);
+
+					            console.log('after-action', nextState);
+
+					            return true;
+
+				            }
+        			),
+        			dispatchListenerSpy:jasmine.createSpy('dispatchListenerSpy() spy').and.callFake(
+        					function(appState){
+
+        					}
+    				)
             	};
-            var store = Radixx.createStore("items", Routines.storeCallbackSpy, []);
+
+
+            var store = Radixx.makeStore("items", Routines.storeCallbackSpy, []);
+
+            Radixx.onDispatch(Routines.dispatchListenerSpy);
+
+            Radixx.attachMiddleware(function(next, action, prevState){
+
+            	if(action.actionData instanceof Array){
+
+            		action.actionData.push(1,3,4,5);
+            	}
+
+            	var value = next(
+            		action,
+            		prevState
+        		);
+
+	            console.log(value, "-------------------------------");
+
+            });
+
+            Radixx.attachMiddleware(Routines.middlewareCallbackSpy);
+
             var listener = jasmine.createSpy('dummy');
 
 			store.setChangeListener(listener);
@@ -104,13 +181,17 @@ describe("Radixx: ", function() {
 			
 			it("should expose relevant objects and API methods", function() {
 			
-				   expect(action).toBeAnAction();
+				   expect(actions).toBeAnAction();
 				
-				   expect(action.createItem).toBeAFunction();
+				   expect(actions.createItem).toBeAFunction();
+
+				   expect(actions.addItem).toBeAFunction();
 				
 				   expect(store).toBeAStore();
 				   
 				   expect(store.getState).toBeAFunction();
+
+				   expect(store.makeTrait).toBeAFunction();
 
 				   expect(store.setChangeListener).toBeAFunction();
 
@@ -125,36 +206,74 @@ describe("Radixx: ", function() {
 				   expect(store.redo).toBeAFunction();
 				
             });
+
+
+            it("should never call the store callback(s) whenever the store is hydrated except listener(s)", function(){
+
+            	store.hydrate(['hello', 'world']);
+
+            	expect(Routines.storeCallbackSpy).not.toHaveBeenCalled();
+
+            	expect(listener).toHaveBeenCalled();
+            })
 			
-			it("should trigger the store callback(s) when the action creator(s) are called", function(){
+			it("should trigger the store and middleware callback(s) whenever the action creator(s) are called", function(){
 				  
-				  action.createItem([]);
+				  actions.createItem([]);
 
 				  expect(Routines.storeCallbackSpy).toHaveBeenCalled();
+
+				  expect(Routines.middlewareCallbackSpy).toHaveBeenCalled();
 				  
 			});
 
-			it("should trigger the store lsitener(s) when the action creator(s) are called", function(){
+			it("should trigger the store listener(s) whenever the action creator(s) are called", function(){
 				
-				  action.createItem([]);
+				  actions.addItem({});
 
 				  expect(listener).toHaveBeenCalled();
 				  
 			});
 
+			it("should trigger the dispatch listener to be called whenever the action creator(s) are called", function(done){
+
+				actions.addItem({});
+
+				setTimeout(function(){
+
+					expect(Routines.dispatchListenerSpy).toHaveBeenCalled();
+
+					done();
+
+				},0);
+
+            });
+
+			it("should throw an error if the payload is not of the type as defined by the action-definition", function(){
+
+				expect(function(){ 
+				  
+				        actions.createItem({});
+						
+			  	}).toThrowError('Action Data Invalid for action: [CREATE_ITEM]');
+
+			});
+
 			it("should throw an error if `undefined` is returned from the store callback", function(){
 
-				  store.swapCallback(function(action, area){
+				  store.swapCallback(function(action, state){
 				  		
-				  		;
+				  		return undefined;
 				  });
 
 				  expect(function(){ 
 				  
-				        action.createItem({});
+				        actions.addItem({});
 						
 				  }).toThrowError("Radixx: Application State unavailable after signal to Dispatcher"); 
 			});
+
+
 
 
 });

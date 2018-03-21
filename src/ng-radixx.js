@@ -11,7 +11,9 @@
 ;(function(w, d, a){
 
 	if(!a){
+
 		throw new Error("ngRadixx requires [AngularJS] v1.x");
+
 		return;
 	}
 
@@ -60,16 +62,16 @@
 
 				// Adapter Method here
 
-				this.createAction = function(actionsVectors){
+				this.makeActionCreators = function(actionsVectors){
 
-					return $window.Radixx.createAction(actionsVectors);
+					return $window.Radixx.makeActionCreators(actionsVectors);
 				};
 
 				// Adapter Method here
 
-				this.createStore = function(storeTitle, storeCallback, defaultStateObj){
+				this.makeStore = function(storeTitle, storeCallback, defaultStateObj){
 
-					return $window.Radixx.createStore(storeTitle, storeCallback, defaultStateObj);		
+					return $window.Radixx.makeStore(storeTitle, storeCallback, defaultStateObj);		
 				};	
 
 				this.eachStore = function(func){
@@ -77,9 +79,21 @@
 						return $window.Radixx.eachStore(func);
 				};
 
+				this.attachMiddleware = function(func){
+
+					return $window.Radixx.attachMiddleware(func);
+
+				};
+
 				this.requestAggregator = function(){
 
 						return $window.Radixx.requestAggregator();
+				};
+
+				this.onShutdown = function(func){
+
+						return $window.Radixx.onShutdown(func);
+
 				};
 
 			}

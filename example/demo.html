@@ -1,25 +1,72 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Radixx - Example App</title>
+	<title>Radixx Flux Library - Example App</title>
 	<script src="../dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
+
 		r.onDispatch(function(app_state){
 			/* fired when all synchronous/asynchronous 
 				mutations are completely done on the state */
 			console.log(JSON.stringify(app_state)); 
 		});
 
+		r.configure({
+			runtime:{
+				spaMode:false,
+				shutDownHref:'/'
+			},
+			persistenceEnabled:true
+		});
+
 		var registeredStores = [];
 		
 		/* creating an action - multiple actions can be created for a real-life application */
-		w.action = r.createAction({loadTodos:'LOAD_TODOS',saveTodo:'SAVE_TODO'});
+		w.actions = r.makeActionCreators({
+			loadTodos:{
+				type:'LOAD_TODOS',
+				actionDefinition:Radixx.Payload.type.array
+			},
+			saveTodo:{
+				type:'SAVE_TODO',
+				actionDefinition:Radixx.Payload.type.any
+			}
+		});
+
+		/*
+
+			A Logger Middleware
+		*/
+
+		r.attachMiddleware(function(next, action, prevState){
+
+			console.log('action-data', action.actionData);
+
+			console.log('action-type', action.actionType);
+
+			console.log('before-action', prevState);
+
+			var nextState = next(
+				action,
+				prevState
+			);
+
+			console.log('after-action', nextState); // array - (because this is the last middleware attached in sequence)
+
+			return {
+				nextState:nextState,
+				logType:'local'
+			};
+
+		});
 		
 		/* creating a store - multiple stores can be created for a real-life application */
 		/* there's a strict structure to how to define a store callback - MUST always return area.put(); - as calling the put() method this way triggeres all change listeners */
-		w.store = r.createStore('todos', function(action, area){
-						var todos; 
+		w.store = r.makeStore('todos', function(action, state){
+
+						var todos = state; 
+
 						switch(action.actionType){
 							case 'LOAD_TODOS':
 								// action.actionData MUST be an array as seen
@@ -27,8 +74,7 @@
 								todos = action.actionData;
 							break;
 							case 'SAVE_TODO':
-								// area.get() is used to retrieve current state for this store
-								todos = area.get();
+								// add an object into the todo
 								todos.push(action.actionData);
 							break;
 							default:
@@ -36,12 +82,12 @@
 							break;
 						}
 
-						// area.put() is used to write/insert a new state into the store
-						return area.put(todos);
+						return todos;
 		}, []);
 
 		// setup a function to listen for change to the store
-		store.setChangeListener(function(){
+		store.setChangeListener(function(actionType, actionKey){
+			
 			// the this reference in here is the store itself
 			alert("STORE AFFECTED: " + this.getTitle());
 		});
@@ -55,8 +101,10 @@
 		});
 
 		// swapping the store callback with a new one
-		store.swapCallback(function(action, area){
-				var todos; 
+		store.swapCallback(function(action, state){
+
+				var todos = state; 
+
 				switch(action.actionType){
 					case 'LOAD_TODOS':
 						todos = action.actionData;
@@ -79,7 +127,7 @@
 					break;
 				}
 
-				return area.put(todos);
+				return todos;
 		});
 	}(this, this.Radixx));	
 	</script>
@@ -92,14 +140,14 @@
 		;(function(w, d){
 
 			// calling an action - an action triggers changes in the store (by extension the application state)
-			action.loadTodos([
+			actions.loadTodos([
 				{
-					text:'Buy flowers for my wife!', 
+					text:'Buy flowers for my wife', 
 					completed:true,
 					due_date_timestamp:1491144056023
 				},
 				{
-					text:'Write that website re-design proposal',
+					text:'Prepare that website re-design proposal',
 					completed:false,
 					due_date_timestamp:1491144702573
 				}

@@ -37,24 +37,117 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		});
 
 		r.configure({
-			universalCoverage:false, /* use sessionStorage */
-			stateRestoreMovesCount:Number.POSITIVE_INFINITY,
-			/* more here */
+			runtime:{
+				spaMode:false,
+				shutDownHref:'/'
+			},
+			persistenceEnabled:true
 		});
 
 		var registeredStores = [];
 		
-		/* creating an action - multiple actions can be created for a real-life application */
-		w.action = r.createAction({
+		/* 
+			creating action creators - multiple actions can be created for a real-life application 
+		*/
+		w.actions = r.makeActionCreators({
 				loadTodos:{
 					type:'LOAD_TODOS',
-					actionDefinition:[Radixx.Payload.type.array]
+					actionDefinition:Radixx.Payload.type.array
 				},
 				saveTodo:{
 					type:'SAVE_TODO',
-					actionDefinition:[Radixx.Payload.type.object]
+					actionDefinition:Radixx.Payload.type.object
 				}	
 	 	});
+
+	 	/*
+
+			Middlewares allow you to modify the existing action data in sequence until it
+			gets dispatched to all available stores.
+
+			PS: You can only access the `nextState` (latest application state) in the last
+				attached middleware in the order in which the middlewares were attached
+
+				If you MUST access the `nextState` in the remaining middleware(s) other than 
+				the last one, then return the `nextState` from the last attached middleware
+	 	*/
+
+		r.attachMiddleware(function(next, action, prevState){
+
+					let promise = new Promise((resolve, reject) => {
+
+						if(action.actionType === 'PUSH_DOWN'){
+						
+							if(action.actionData.expired === true){
+								
+								setTimeout(() => {	
+
+								 		var data = {
+								 			name:'whatever'
+								 		};
+
+								 		resolve(
+								 			data
+								 		); 
+
+								}, 4500);
+								
+							}else{
+
+								resolve(
+									action.actionData
+								)
+							}
+						}
+
+					});
+			
+					promise.then(function(data){
+
+						/* 
+							signal to Radixx that it should call the next middleware 
+							callback or dispatch to all stores.
+						*/
+
+				 		action.actionData = data;
+						
+						var result = next(
+			 				action,
+			 				prevState
+			 			);
+
+			 			console.log(result.nextState); // To access the `nextState` from the next middleware callback
+		 			});
+
+		});
+
+		/*
+
+			A Logger Middleware
+		*/
+
+		r.attachMiddleware(function(next, action, prevState){
+
+			console.log('action-data', action.actionData);
+
+			console.log('action-type', action.actionType);
+
+			console.log('before-action', prevState);
+
+			var nextState = next(
+				action,
+				prevState
+			);
+
+			console.log('after-action', nextState);
+
+			return {
+				nextState:nextState, // returned to the previous middleware callback
+				logType:'local'
+			};
+
+		});
+
 		
 		/* creating a store - [however, multiple stores can be created for a real-life application] */
 
@@ -70,7 +163,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 			 Now, the second argument is the state object itself
 		 */
-		w.store = r.createStore('todos', function(action, state){
+		w.store = r.makeStore('todos', function(action, state){
 						
 						var todos = state; 
 						
@@ -92,16 +185,19 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		}, []);
 
 		// setup a function to listen for change to the store
-		store.setChangeListener(function(){
+		store.setChangeListener(function(actionType, actionKey){
+
 			// the this reference in here is the store itself
 			alert("STORE AFFECTED: " + this.getTitle());
 		});
 
 		// do something with each store created
 		r.eachStore(function(store, next){
+
 			// get the title of the store and push into an array
 			registeredStores.push(store.getTitle());
-			// move to the next store that has been created and do same as above with it
+
+			// move to the next store that has been created and do same as above with it (very useful for asynchronous code)
 			next();
 		});
 
@@ -120,6 +216,24 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 				},
 				ajaxRequest:function(options){
 
+					const promise = new Promise((resolve, reject) => {
+
+								var xhr = new XMLHttpRequest();
+
+								xhr.onload = function(e){
+									resolve(xhr.responseText);
+								};
+
+								xhr.onerror = function(e){
+									reject(xhr.statusText);
+								}
+
+								xhr.open(options.url, options.type, true);
+
+								xhr.send(null);
+					});
+
+					return promise;
 				}
 		};
 
@@ -128,7 +242,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 			type:"GET"
 		}).then(function(res){
 
-			return Application.loadAllState(res);
+			return Application.loadAllState(JSON.parse(res));
 
 		});
 
@@ -149,14 +263,14 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 							var todoTimeToDueDate = (new Date*1),
 								alltodos = this.concat.apply(action.actionData);
 
-							return alltodos.map(function(todo){
-								
-								return {
-									is_overdue:todoTimeToDueDate > todo.due_date_timestamp,
-									todo:todo
-								};
+								return alltodos.map(function(todo){
+									
+									return {
+										is_overdue:todoTimeToDueDate > todo.due_date_timestamp,
+										todo:todo
+									};
 
-							});
+								});
 						};
 					break;
 					default:
@@ -173,21 +287,24 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 	</script>
 </head>
 <body>
-	<ul id="todos"></ul>
-	<button type="button" disabled="disabled" id="undo-btn">UNDO</button>
-
+	<ul id="todos">
+	</ul>
+	<button type="button" disabled="disabled" id="undo-btn">
+		UNDO
+	</button>
 	<script type="text/javascript">
+
 		;(function(w, d){
 
 			// calling an action - an action triggers changes in the store (by extension the application state)
-			action.loadTodos([
+			w.actions.loadTodos([
 				{
-					text:'Buy flowers for my wife!', 
+					text:'Buy flowers for my fiancee', 
 					completed:true,
 					due_date_timestamp:1491144056023
 				},
 				{
-					text:'Write that website re-design proposal',
+					text:'Prepare that website re-design proposal',
 					completed:false,
 					due_date_timestamp:1491144702573
 				}
@@ -237,17 +354,25 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 These are methods defined on the global **Radixx** object
 
-- **Radixx.createAction(** _Object_ actionTagMap **)**
+- **Radixx.attachMiddleware(** _Function_ middlewareCallback **)**
+
+> Used to intercept actions that are dispatched by action creators to stores abd/or modify action data where necesssary
+
+- **Radixx.makeActionCreators(** _Object_ actionTagMap **)**
 
 > Used to create an action creators (in Flux Architecture parlance). An object literal having the action method names (as key) and the action tag (as value) is passed into this api method.
 
-- **Radixx.createStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ initialStoreState] **)**
+- **Radixx.makeStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ initialStoreState] **)**
 
 > Used to create a store to which action will be sent using action creators
 
+- **Radixx.onShutdown(** _Function_ shutdownListener **)**
+
+> Registers a listener that is called whenever Radixx automatically destroys all its stores internally due to a `shutdown-href` trigger
+
 - **Radixx.onDispatch(** _Function_ dispatchListener **)**
 
-> Registers a function that is called whenever an action is disptached to the Hub (also called the `Dispatcher` in Flux Architecture parlance)
+> Registers a listener that is called whenever an action is disptached to the Hub (also called the `Dispatcher` in Flux Architecture parlance)
 
 - **Radixx.eachStore(** _Function_ storeIterator **)**
 
@@ -255,42 +380,51 @@ These are methods defined on the global **Radixx** object
 
 - **Radixx.configure(** _Object_ configurationObject **)**
 
-> Used to configure the Radixx store.
+> Used to configure the Radixx store(s).
 
 
 ## Radixx APIs (Properties)
 
 - **Radixx.Payload.type.string**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: String
 
 - **Radixx.Payload.type.array**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Array
 
 - **Radixx.Payload.type.object**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Object
 
 - **Radixx.Payload.type.date**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Date
 
 - **Radixx.Payload.type.function**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Function
 
-- **Radixx.Payload.type.number.Int**
+- **Radixx.Payload.type.number**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Number
 
-- **Radixx.Payload.type.number.Float**
+- **Radixx.Payload.type.nullable**
 
->
+> Used to signify that action creator method argument/payload MUST always be of type: Null or Undefined
 
-- **Radixx.Payload.type.any.Mixed**
+- **Radixx.Payload.type.any**
 
-> 
+> Used to signify that the action creator method argument/payload CAN BE of any type EXCEPT: Null or Undefined
+
+- **Radixx.Payload.type.numeric.Int**
+
+> Used to signify that action creator method argument/payload MUST always be a Integer number
+
+- **Radixx.Payload.type.numeric.Float**
+
+> Used to signify that action creator method argument/payload MUST always be a Floating-Point number
+ 
 
 
 ## Store APIs
@@ -308,6 +442,10 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 - **store.getState(** _void|String_ stateKey **)**
 
 > Used to retrieve the current state of the store
+
+- **store.makeTrait(** _Function_  traitFactory **)**
+
+> Used to create data items which are based on the store
 
 - **store.setChangeListener(** _Function_ changeListener **)**
 
@@ -327,7 +465,7 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 - **store.swapCallback(** _Function_ newStoreCallback **)**
 
-> Used to hot swap or replace a store callback
+> Used to hot swap / replace a store callback
 
 - **store.destroy(** _void_ **)**
 
@@ -337,13 +475,13 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 > Used to disbale the store from recieving dispatch from action creators methods
 
+
 ## Features
 
-- Infinite/Finite Undo/Redo + Time Travel (cos we have got to have trade-offs - However, performance suffers if you have infinite undo/redo as the actions stack grows bigger)
-- Use of Mixins for ReactJS and VueJS (even though most people think _mixins_ are dead and composition should be the only thing in used, i still think mixins have a place)
+- Infinite/Finite Undo/Redo + Time Travel 
+- Use of Traits (as Mixins) for ReactJS and VueJS (even though most people think _mixins_ are dead and composition should be the only thing in used, i still think mixins have a place)
 - Can replace the store callback (similar to **replaceReducer()** in _Redux_)
 - An extended Loose Coupling between Radixx Dispatcher and Controllers/Components.
-- Configure the order in which the <q>dispacth</q> triggers the store callbacks.
 - A transparent way for separating mutation, dependence and asynchronousity in application state management.
 - No need to **<q>emit</q>** change events from within a store registration callback.
 - No unecessarily elaborate definition for **Action Creators** &amp; **Stores** (Write less code).
@@ -353,27 +491,28 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 ## Benefits
 
-- Use with Single Page App Frameworks/Libraries e.g. VueJS 1.x/2.x, AngularJS 1.x, Angular 2.x, Ractive, React
-- Use with Multi Page App Frameworks as well e.g jQuery, Jollof, Pheonix, Laravel, Flask, AdonisJS (application state persists across page loads/reloads)
+- Use with Single Page App Frameworks/Libraries e.g. VueJS 1.x/2.x, AngularJS 1.x, Angular 2.x, Ractive, ReactJS, jQuery
+- Use with Multi Page App Frameworks as well e.g Django, Jollof, Pheonix, Laravel, Flask, AdonisJS (application state persists across page(s) load/reload)
 
 ## Best Practices (Dos and Don'ts)
 
-- Application UI State {a.k.a Volatile Data} -- **don't store** this in Radixx (e.g. Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
-- Application Data State {a.k.a Non-Volatile Data} -- **do store** this in Radixx (e.g. Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
+- Application UI State {a.k.a Volatile Data} -- **don't store** this in Radixx stores (e.g. Text Input - being entered, Animation Tween Properties/Values, Scroll Position Values, Text Box Caret Position, Mouse Position Values, Unserializable State - like functions)
+- Application Data State {a.k.a Non-Volatile Data} -- **do store** this in Radixx stores (e.g. Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
 
-> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} and {properties={...}} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the DOM and {this.state} since {this.setState} is _asynchronous_ in the way it operates.
+> NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the DOM and {this.state} since {this.setState} is sometimes _asynchronous_ in the way it operates.
 
 # Caveats/Gotchas
 
 - Radixx would not maintain state across multiple tabs in a browser except the  **<q>universalCoverage</q>** config option is set to **true**.
-- Radixx would not access the storage objects it needs if it is placed in an iframe that has _sandbox attribute_ restrictions or does not have the same scheme and domain as the parent window (same-origin policy restrictions) except a reverse proxy tactic or the [domain hack](http://) is used.
+- Radixx throws an error if the **<q>runtimeMode</q>** config option
+- Radixx would not access the storage objects where necessary if it is placed in an iframe that has very tight _sandbox attribute_ restrictions or does not have the same scheme and domain as the parent window (same-origin policy restrictions) except a reverse proxy tactic or the [domain hack](http://qnimate.com/same-origin-policy-in-nutshell/) is used.
 
 
 ## About Redux (with respect to Radixx)
 
 Hers's how **Redux** is simply described
 
-> Redux is basically event-sourcing where there is a single projection to consume (the application state).
+> Redux is basically event-sourcing where there is a single projection to consume the application state (think CQRS - Command Query Responsibilty Segregation).
 
 Someone had this to say about the state of **Redux** single store
 
@@ -409,22 +548,27 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 
 ```js
 
-	var action = Radixx.createAction({
+	var actions = Radixx.makeActioncreators({
 			'addStuff':{
 				type:'ADD_STUFF',
-				actionDefinition:[Radixx.Payload.type.string]
+				actionDefinition:Radixx.Payload.type.string
 			}
 	});
 
-	var store = Radixx.createStore('stuffs', function(action, state){
+	var store = Radixx.makeStore('stuffs', function(action, state){
 			
 			var stuffs = state;
 
 			switch(action.actionType){
 				case 'ADD_STUFF':
-					if(action.actionKey){
-						stuffs[action.actionKey] = action.actionData;
+
+					/* action.actionKey is 'profile' */
+
+					if(action.actionKey
+						&& !!stuffs[actionKey]){
+						stuffs[action.actionKey].fullName = action.actionData;
 					}
+
 				break;
 				default:
 					return null;
@@ -433,42 +577,154 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 
 			return stuffs;
 	}, {
-		firstName:'',
-		lastName:'',
-		text:'okay!'
+		profile:{
+			fullName:'John Doe',
+			phone:'08011111111'
+		}
 	});
 
-	// Vue Component defined with lifecycle hooks
+	var trait = store.makeTrait(function(store, callback){
 
-	var MyVueComponent = Vue.extend({
-			name:'radixx-powered',
-			mixins:[store.vuejs.mixin],
-			prop:['gender'],
-			template:'<div><p>{{fullName}}</p>'+
-			'<input type="text" v-model="text">'+
-			'<button v-on:click="add">ADD</button></div>',
-			computed:{
-				fullName:function(){
+			var __callback;
 
-					return this.firstName + ' ' + this.lastName;
+			return {
+				beforeCreate:function(){
+				
+					// an ajax call may come in here ...
+
+					/*	
+						from an ajax call response, if an empty object literal was passed (as third argument) to `Radixx.createStore` call (above), then, we can call `hydrate` on the store object here passing it the requisite data from the ajax response
+
+						Assuming `axios` is loaded
+
+					*/
+
+					axios.get('/get/data')
+						.then(function( ajaxResponseData){
+							store.hydrate( ajaxResponseData );
+						})
+						.catch(function(error){
+
+					});
+
+				},
+				created:function(){
+
+					const _this = this;
+
+					// register a dispatch listener...
+
+					Radixx.onDispatch(function(appState){
+
+						// do stuff with `appState`
+
+						 var componentName = _this.$options.name;
+
+						 console.log(appState[componentName]);
+
+					});
+
+				},
+				beforeMount:function(){
+
+					const _this = this;
+
+					// register a middleware callback...
+
+					Radixx.attachMiddleware(function(next, action, prevState){
+
+						var nextState = next(
+							action,
+							prevState
+						);
+					});
+
+				},	
+				mounted:function(){
+
+					__callabck = callback(this);
+
+					store.setChangeListener(__callback);
+				},
+				beforeUpdate:function(){
+
+
+				},
+				destroyed:function(){
+
+					store.unsetChangeListener(__callback);
+				}
+			};
+
+	}, function(component){
+
+		return function(actionType, actionKey){
+
+			// used the store change listener for side effects only
+
+			switch(actionType){
+				case "ADD_STUFF":
+
+					alert("Stuff has been added successfully...");
+
+				break;
+			}
+		};
+
+	});
+
+	// A Vue Component defined with lifecycle hooks via mixins (Radixx store traits)
+
+	const MyVueComponent = {
+			name:'stuffs', /* The name of the component could be the same as that of the store */
+			mixins:[trait],
+			prop:{
+				claim:{
+					type:String,
+					required:true
 				}
 			},
-			beforeCreate:function(){
-				// for an advanced app, an ajax call may come in here ...
+			template:`<div>
+						<p>{{componentState.profile.fullName}}</p>
+						<input type="text" v-model="firstName">
+						<input type="number" v-model="phone">
+						<button v-on:click="add" v-bind:disabled="buttonDisabled" v-bind:title="gender">ADD</button>
+					</div>`,
+			computed:{
+				componentState:{
+					get:function(){
 
-				/* 	
-					from an ajax call response, if an empty object literal was passed (as third argument) to `Radixx.createStore` call (above), then, we can call `hydrate` on the store object here passing it the requisite data from the ajax response
+							return store.getState();
+						
+					},
+					set:function(state){
 
-					store.hydrate( ajaxResponseData );
+						// use this to update your UI state via data ONLY 
+						let flname = state.profile.fullName;
+
+					}
+				}
+			},
+			watch:{
+				phone:function(newval, oldval){
+
+					// code goes here... 
+				}
+			},
+			data:function(){
+
+				/*
+					Only UI state (transient) should go in here
+
+					No core application state should be here
 				*/
-			},
-			mounted:function(){
 
-				// code here...
-			},
-			beforeUpdate:function(){
+				return {
+					buttonDisabled:false,
+					firstName:'',
+					phone:''
+				};
 
-				// code here...
 			},
 			methods:{
 				add:function(){
@@ -476,26 +732,38 @@ _Your best bet in all these is to choose the trade-offs wisely (depending on the
 					/* 
 						calling an action to write data into our store
 						and trigger an update on the view/store change event, 
-						here we are writing to `firstName` with a value of `this.text`
+						here we are writing to `fullName` with a value of `this.firstName`
 
 					*/
 
-					action.addStuff(this.text, 'firstName');
+					actions.addStuff(this.firstName, 'profile');
 				}
-			},
-			destroyed:function(){
-
-				// code here...
 			}
 	});
+
+	/*
+		For communication between one or more components, the props and events of VueJS
+		come in very handy
+	*/
+
+	// See: https://vuejs.org/v2/guide/components.html#Composing-Components
+
 
 	var app = new Vue({
 			el:'#app',
 			components:{
-				MyComponent:MyVueComponent
-			},
-			template:'<my-component gender="male"></my-component>'
+				'my-component':MyVueComponent
+			}
 	});
+
+
+```
+
+```html
+
+	<div id="app">
+		<my-component claim="basic"></my-component>
+	</div>
 
 ```
 
@@ -530,7 +798,11 @@ angular.module("appy", [
 		$urlRouterProvider.otherwise('/');
 
 		$ngRadixxProvider.configure({
-			
+			runtime:{
+				spaMode:false,
+				autoShutDownHref:'/#/logout'
+			},
+			persistenceEnabled:true
 		});
 });
 
@@ -549,19 +821,22 @@ angular.module("appy.todos", [
 
 	var action_c_mappings = {
 		'loadTodos':{
-			type:'LOAD_TODOS'
+			type:'LOAD_TODOS',
+			actionDefinition:Radixx.Payload.type.array
 		},
 		'addTodo':{
-			type:'ADD_TODO'
+			type:'ADD_TODO',
+			actionDefinition:Radixx.Payload.type.object
 		},
 		'removeTodo':{
-			type:'REMOVE_TODO'
+			type:'REMOVE_TODO',
+			actionDefinition:Radixx.Payload.type.numeric.Int
 		}
 	};
 	
 	/* create an action object with all necessary action names */
 
-	return $ngRadixx.createAction(
+	return $ngRadixx.makeActionCreators(
 		action_c_mappings
 	);
 
@@ -571,7 +846,7 @@ angular.module("appy.todos", [
 
 	function($ngRadixx){
 	
-	return $ngRadixx.createStore(
+	return $ngRadixx.makeStore(
 		'todos',
 		register,
 		[]
@@ -599,7 +874,7 @@ angular.module("appy.todos", [
 		return todos;
 	};
 
-}]) 
+}]); 
 
 .factory('$fetch', ['$http', '$q', 'pouchDB', function($http, $q, pouchDB){
 	
@@ -734,37 +1009,18 @@ angular.module("appy.todos", [
 			$todoAction.removeTodo(todoId);
 		};
 
-}]).run(['$rootScope', '$window', function($rootScope, $window){
+}]).run(['$rootScope', '$window', '$ngRadixx', function($rootScope, $window, $ngRadixx){
+
+		$ngRadixx.attachMiddleware(function(next, action, prevState){
+
+			var nextState = next(
+				action,
+				prevState
+			);
+
+		});
 	
-		$window.onbeforeunload = $window.onunload = handleOffload;
-
-		angular.element(window).on('beforeunload', handleOffload);
-
-		function handleOffload(e){
-			
-				var e = e || window.event;
-
-				if (e.originalEvent) {
-					$rootScope.$broadcast("$clientPush", {
-	        				async: false
-	    				});
-					return;
-    			}
-	    
-				angular.element(window).trigger('beforeunload');
-
-				var confirmation = {}, 
-					event = $rootScope.$broadcast('$beforeUnload', confirmation);
-
-				if('returnValue' in e
-					    && event.defaultPrevented){
-					        e.returnValue = confirmation.message;
-				}else if(event.defaultPrevented){
-					    return confirmation.message;
-				}else{
-	                	return undefined;
-	      		}
-		}
+		console.log("app is good to go!");
 
 }]);
 ```
@@ -772,27 +1028,64 @@ angular.module("appy.todos", [
 
 ```js
 	
-	/* using the idea of Presentation and Container components - Dan Abrahamov!! */
+	/* ====================  */
+
+
+ 	/*!
+ 	 *	When using Radixx with ReactJS, There are few things you should be aware of.
+ 	 * 
+ 	 *
+ 	 * ReactJS and Radixx are not opinionated. This can make it tricky
+ 	 * to use the two together and you can get it all wrong very easily.
+ 	 *
+ 	 * Using the concept of Root, Presentation and Container components - adapted from Dan Abrahamov (creator of Redux)
+ 	 * it is possible to get it right when using ReactJS with as many as 12 components in a project. If you have at most
+ 	 * 2 components in your project then you need not use Radixx or if you do you don't really need to organize your
+ 	 * components into ROOT, PRESENTATION and CONTAINER components. Below is a list of guidelines to safely use Radixx
+ 	 * with ReactJS
+ 	 *
+ 	 *	# Only use `setState` on the ROOT and PRESENTATION Components
+ 	 *	# Only use `componentWillMount` on the ROOT Component (There MUST BE only 1 ROOT Component per App).
+ 	 * 	# Only use `componentDidMount`, `componentWillUnmount` and `mixins` on CONTAINER Components
+ 	 * 	# Only use `shouldComponentUpdate`, `componentWillRecieveProps`, `componentDidUpdate`, `getDefaultProps`, `getInitialState` and `mixins` on PRESENTATION Components
+ 	 * 	# The STORE should be attached to both the CONTAINER and PRESENTATION Components
+ 	 * 	# The ACTION_CREATOR should be attached only to PRESENTATION Components
+ 	 *	# The `render` method should be used on all 3 Component Categories (ROOT, PRESENTATION and CONTAINER)
+ 	 *	# Only use `makeTrait` method of STORE(s) to create Mixins for the CONTAINER and PRESENTATON Components
+ 	 * 	# Only insert UI state (which is transient and non-persistent) in the state object of PRESENTATION Components
+ 	 *	# The `setState` method MUST NEVER be used in CONTAINER Components
+ 	 *
+ 	 */
+
+ 	/* ===================== */ 
+
+
+
+
+
+
+
+
 
 	// Asuuming to use socket.io (client-side)
 	var socket = io.connect('http://locahost:8005', {timeout:300000, 'reconnection':true, transports:["websockets"]}),
 	
-	action = Radixx.createAction({
+	action = Radixx.makeActionCreators({
 		'loadShoes':{
 				type:'LOAD_SHOES',
-				actionDefinition:[Radixx.Payload.type.array]
+				actionDefinition:Radixx.Payload.type.array
 		},
 		'removeShoe':{
 				type:'REMOVE_SHOE',
-				actionDefinition:[Radixx.Payload.type.number.Int()]
+				actionDefinition:Radixx.Payload.type.numeric.Int
 		}
 		'addShoe':{
 				type:'ADD_SHOE',
-				actionDefinition:[Radixx.Payload.type.object]
+				actionDefinition:Radixx.Payload.type.object
 		}
 	}),
 
-	store = Radixx.createStore('shoes', function(action, state){
+	store = Radixx.makeStore('shoes', function(action, state){
 		var stub = state;
 		switch(action.actionType){
 			case 'ADD_SHOE':
@@ -820,35 +1113,113 @@ angular.module("appy.todos", [
 		return stub;
 
 	}, {shoes:[],jewellry:[]});
+			
 
-	store.reactjs.mixin = {
-		componentWillUnmount:function(){
 
-			this._storeListener = this._onStoreChange.bind(this);
-			/* unsubscribe store change listener */
-			store.unsetChangeListener(this._storeListener);
-		}
-		componentDidMount:function(){
 
-			/* Assuming use of socket.io library - joining a room */
-			socket.join('shoelovers');
 
-			/* subscribe store change listener */
-			store.setChangeListener(this._storeListener);
+	var PresentationTrait = store.makeTrait(function(store){
+	
+		return {
+			componentWillRecieveProps:function(nextProps){
+				if(nextProps.shoes.length === 15){
+					if(this.state.canAddMoreShoes === true){
+						this.setState({
+							canAddMoreShoes:false
+						}); // set state to something else...
+					}
+				}
+			},
+			shouldComponentUpdate:function(nextProps, nextState){
+				return (
+					!Radixx.Helpers.isEqual(this.props, nextProps) ||
+					!Radixx.Helpers.isEqual(this.state, nextState)
+				);
+			},
+			componentDidUpdate:function(){
 
-		},
-		getDefaultProps:function(){
+				socket.emit('shoe-okay', this.props.shoes);
+			},
+			_post:function(_url, _data){
+					
+					/* Assuming `Axios` is loaded in - return the promise */
 
-			return store.getState();
-		}
-	};
+					return axios.post(_url, _data);
+
+			},
+			getDefaultProps:function(){
+
+				return {
+					shoes:store.getState('shoes')
+				};
+			},
+			getInitialState:function(){
+
+				/* 
+					When using `getInitialState()`, never return Radixx store state from here. 
+					you can use this to hold UI state (which should NEVER go into)
+				 */
+
+				return { // UI state ONLY
+					addingShoe:false,
+					canAddMoreShoes:true,
+					loadingShoes:false
+				};
+
+
+			}	
+		};
+
+	});
+
+	var ContainerTrait = store.makeTrait(function(store, listener){
+
+			return {
+				componentWillUnmount:function(){
+
+					/* unsubscribe store change listener */
+					store.unsetChangeListener(listener);
+				}
+				componentDidMount:function(){
+
+					/* Assuming use of socket.io library - joining a room */
+					socket.join('shoelovers');
+
+					/* subscribe store change listener */
+					store.setChangeListener(listener);
+
+				}
+			};
+	}, function(actionType, actionKey){
+
+
+			switch(actionType){
+
+				case "ADD_SHOE":
+
+				break;
+			};
+
+	});
+
+
+
+
+
+	/* =============================
+	============================= */
+
+
 
 
 	/* PRESENTATION COMPONENT */
 
-	// not defined with lifecycle hooks
+	// defined with most lifecycle hooks
 
 	var ShoeComponent = React.createClass({
+			propTypes:{
+				shoes:React.PropTypes.array
+			},
 			getStyle: function(){
 
 				return {
@@ -859,19 +1230,48 @@ angular.module("appy.todos", [
 					backgroundColor:'#ee321f'
 				};
 			},
+			onKeys:function(e){
+
+				this.setState((prevState, props) => {
+					if(prevState.addingShoe === false){
+						return {addingShoe:true};
+					}
+					return prevState;
+				});
+
+			},
+			onSubmitForm:function(e){
+				
+				e.preventDefault();
+
+				var form = e.target;
+
+				var payload = {
+					type:this.props.shoes.length,
+					name:form.elements['add'].value
+				};
+
+				action.addShoe(payload).then(function(data){
+					if(data !== null){
+						this._post('http://localhost:5600/shoes', data)
+					}
+				});
+			},
+			mixins:[PresentationTrait],
 			render:function(){
 
 				var shoes = this.props.shoes.map(function(shoe){
 								return <li id={shoe.type}>{shoe.name}</li>
 							}), 
+
 					_style = this.getStyle();
 
 				return (
 
 					<section style={_style}>
-						<form className="form" onSubmit={this.props.submit}>
-							<input type="text" name="add" id="add" placeholder="Add Shoes..." onKeyPress={this.props.keyz} />
-							<button type="submit">ADD</button>
+						<form className="form" onSubmit={this.onSubmitForm}>
+							<input type="text" name="add" id="add" placeholder="Add Shoes..." onKeyDown={this.onKeys} />
+							<button type="submit" name="add">ADD</button>
 						</form>
 						<ul>
 							{shoes}
@@ -883,135 +1283,103 @@ angular.module("appy.todos", [
 			
 	});
 
+
+
+
+
+
+	/* =============================
+	============================= */
+
+
+
+
+
 	/* CONTAINER COMPONENT */
 
-	// defined with lifecycle hooks
+	// defined with no lifecycle hooks
 
-	var ShoeApp = React.createClass({
-		propTypes:{
-			shoes:React.PropTypes.array
-		},
-		mixins:[store.reactjs.mixin],
-		getInitialState:function(){
+	var ListingsContainer = React.createClass({
+			mixins:[ContainerTrait],
+			render:function(){
 
-			return {addingShoe:false,loadingShoes:false};
-		},
-		shouldComponentUpdate:function(nextProps, nextState){
+					 var _shoes = store.getState('shoes');
 
-			return this._deepEqual(this.state, nextState) && (nextProps.shoes.length != this.props.shoes.length);
-		},
-		componentWillMount:function(){
+					 return (
 
-			/* if state doesn't conatian data, fetch from server */
-			if(this.props.shoes.length == 0){
-				this._fetch('http://localhost:5600/shoes').done(
-					action.loadShoes.bind(action)
-				);
+					 	<ShoeComponent shoes={_shoes} />
+
+					);
 			}
-		},
-		componentDidUpdate:function(){
-
-			console.log(this.state);
-
-			socket.emit('shoe-okay', this.props.shoes);
-		},
-		render:function(){
-
-				 var _shoes = store.getState('shoes');
-
-				 return (
-
-				 	<ShoeComponent shoes={_shoes} submit={this.onSubmitForm.bind(this)} keyz={this.onKeyPress.bind(this)} />
-
-				);
-		},
-		onKeyPress:function(e){
-
-			/* 
-				This is actually supposed to be debounced so we reduce the rate of "useless re-renders" - for now we use an if statement to make up for that 
-			*/
-			
-			// functional `setState`
-
-			if(this.state.addingShoe !== true){
-				this.setState((prevState, props) => { 
-
-					return {addingShoe:true}; 
-				});
-			}
-		},
-		onSubmitForm:function(e){
-			
-			e.preventDefault();
-
-			var form = e.target;
-
-			var payload = {
-				type:this.props.shoes.length,
-				name:form.elements['add'].value
-			};
-
-			action.addShoe(payload);
-		},
-		_fetch:function(_url, _verb, _data){
-			if(!_verb)
-				_verb = 'GET';
-
-			if(!_data)
-				_data = ""	
-
-			/* Assuming `jQuery` is loaded in */
-
-			return $.ajax({
-				url:_url,
-				method:_verb,
-				data:_data
-			});
-		},
-		_deepEqual: function(original, copy){
-				
-				function check (x, y) {
-					  if ((typeof x == "object" && x != null) 
-					  		&& (typeof y == "object" && y != null)) {
-					    	
-					    	if (Object.keys(x).length != Object.keys(y).length)
-					      		return false;
-
-						    for (var prop in x) {
-						      	if (({}).hasOwnProperty.call(y, prop)){  
-									if (! check(x[prop], y[prop]))
-									 	 return false;
-								}else{
-									return false;
-								}
-						    }
-
-						    return true;
-					  }else if (x !== y){
-					    	return false;
-					  }else{
-					    	return true;
-					  } 	
-				};
-				
-				return check(original, copy);
-		},
-		_storeListener:null,
-		_onStoreChange:function(){
-			
-			console.log("store change detected!");
-
-			// functional `setState`
-			this.setState((prevState, props) => { 
-
-				return {addingShoe:!prevState.addingShoe}; 
-			});
-
-		}
 	});
 
-	ReactDOM.render(<ShoeApp />, document.body, function(){
-		console.log("shoes app is good to go!");
+
+
+
+
+
+	/* =============================
+	============================= */
+
+
+
+
+
+
+	/* ROOT  COMPONENT */
+
+	// defined with fewer lifecycle hooks
+
+	var TheApp = React.createClass({
+			_loadAppData:function(){
+
+				axios.get("https://getalldata.example.com").done(function(response){
+					Radixx.eachStore(function(store, next){
+
+						var state = store.getState(), title = "";
+						
+						if(Object.isEmpty(state)){
+
+							title = store.getTitle();
+
+							store.hydrate(response[title]);
+						}
+								
+						next();
+					});
+				});
+			},
+			componentWillMount:function(){
+
+					/* always listen for dispatches */
+
+					let this = that;
+
+					Radixx.onDispatch(function(appstate){
+
+						console.log(appstate);
+
+						that.setState(function(prevState, props){
+
+							return prevState;
+						});
+
+					});
+
+					that._loadAppData();
+
+					
+			},
+			render:function(){
+
+				return <ListingsContainer />
+			}
+	});
+
+	ReactDOM.render(<TheApp />, document.body, function(){
+		
+		console.log("app is good to go!");
+	
 	});
 	
 ```
@@ -1020,16 +1388,21 @@ angular.module("appy.todos", [
 
 ```js
 
-	var action = Radixx.createAction({
-							'addItem':'ADD_ITEM',
-							'loadItem':'LOAD_ITEM'
-				});
+	var actions = Radixx.makeActionCreators({
+							'addItem':{
+								type:'ADD_ITEM',
+								actionDefinition:Radixx.Payload.type.object
+							},
+							'loadItem':{
+								type:'LOAD_ITEM',
+								actionDefinition:Radixx.Payload.type.array
+							}
+	});
 
-	var store = Radixx.createStore('shit', function(action, area){
-					var item; 
+	var store = Radixx.makeStore('shoes', function(action, state){
+					var item = state; 
 					switch(action.actionType){
 						case 'ADD_ITEM':
-							item = area.get();
 							item.push(action.actionData);
 						break;
 						case 'LOAD_ITEM':
@@ -1037,10 +1410,10 @@ angular.module("appy.todos", [
 						break;
 					}
 					
-					return area.put(item);
+					return item;
 	}, []);
 	
-	var shoeComponent = Ractive.extend({
+	var shoesComponent = Ractive.extend({
 	
   		template: '#tpl-app', /* id of {SCRIPT element} used to hold HTML view */
 		beforeInit:function(){
@@ -1073,9 +1446,11 @@ angular.module("appy.todos", [
 	});
 ```
 
+
 ## Browser Support
 
-- IE 8.0+ (Trident, Edge)
+- IE 8.0+ (Trident)
+- Edge (EdgeHTML)
 - Opera 9.0+ (Presto, Blink)
 - Chrome 3.0+ (Webkit, Blink)
 - Firefox 3.5+ (Gecko)
@@ -1088,6 +1463,11 @@ angular.module("appy.todos", [
 ## License
 
 MIT
+
+## Live Projects [that use _Radixx_ for state management in production]
+
+- [**NTI Portal**](https://my.nti.edu.ng) - National Teachers Institute Kaduna
+- [**Stitch NG**](https://app.stitch.ng/cabinet) - (Coming Soon) Fashion Technology Product
 
 ## Contributing
 

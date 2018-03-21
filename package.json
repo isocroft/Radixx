@@ -3,7 +3,10 @@
   "version": "0.1.0",
   "description": "A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
   "keywords": [
-    "Flux"
+    "Flux",
+    "Event Source",
+    "Actions",
+    "Action Creators"
   ],
   "scripts": {
     "lint": "jshint src tests",
