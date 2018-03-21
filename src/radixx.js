@@ -925,7 +925,7 @@ Futures = function(){
 		}
 
 		if(!isNullOrUndefined(_tag)
-			&& !isNullOrUndefined(perstStore)){
+			&& (perstStore !== null)){
 			perstStore.setItem('_tag', JSON.stringify(state));
 		}
 		
