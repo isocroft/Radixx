@@ -17,13 +17,14 @@
 				spaMode:false,
 				shutDownHref:'/'
 			},
-			persistenceEnabled:true
+			persistenceEnabled:true,
+			autoRehydrate:true
 		});
 
 		var registeredStores = [];
 		
 		/* creating an action - multiple actions can be created for a real-life application */
-		w.actions = r.makeActionCreators({
+		w.action_creators = r.makeActionCreators({
 			loadTodos:{
 				type:'LOAD_TODOS',
 				actionDefinition:Radixx.Payload.type.array
@@ -140,7 +141,7 @@
 		;(function(w, d){
 
 			// calling an action - an action triggers changes in the store (by extension the application state)
-			actions.loadTodos([
+			action_creators.loadTodos([
 				{
 					text:'Buy flowers for my wife', 
 					completed:true,
