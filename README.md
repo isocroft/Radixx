@@ -4,6 +4,13 @@
 
 This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed, changed and updated. It resembles **Redux** in a lot of ways. The key deferentiator in both is that **Radixx** utilizes an _actions stack_ and **Redux** utilizes an immutable _state tree_. A single state tree can grow big really fast for a single store but an actions stack grows subtlely for a number of stores when dealing with complex single-page applications(SPAs). The actions stack allows **Radixx** to *<q>recalulate</q>* any state at anytime on demand. It is also how **Radixx** maintains it's _immutablility_.
 
+## File Size 
+
+The footprint for **Radixx** is really small. With all it's functionality, it's just 19KB when minified!
+
+- 46.8 KB (Current Version - Unminified)
+- 18.9 KB (Current Version - Minified)
+
 <img src="radixx.png"></img>
 
 ## How to Use - 2 steps
@@ -16,20 +23,22 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 ```bash
 
-	$ npm install radixx
+	$ npm install radixx --save
 ```
 
 - Next, use it in your JavaScript application like so 
 
 ```html
+
 <!DOCTYPE html>
-<html>
+<html id="demo_app">
 <head>
 	<title>Radixx (Vanilla JS) - Example App</title>
 	<!-- relative paths apply -->
 	<script src="node_modules/radixx/dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
+
 		r.onDispatch(function(app_state){
 			/* fired when all synchronous/asynchronous 
 				mutations are completely done on the state */
@@ -37,26 +46,80 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		});
 
 		r.configure({
-			runtime:{
-				spaMode:false,
+			runtime:{ /* The feature/functionality that the {runtime} config controls is still EXPERIMENTAL */
+
+				spaMode:true, 
+							/* - {runtime.spaMode} 
+
+								setup for whether or not you're building a SPA web app (e.g. using VueJS / ReactJS ) 
+
+								if {runtime.spaMode} is set to `false`, Radixx will automatically setup (internally) its
+								ASMLC [ Application State Management Life Cycle ] procedures.
+
+								This ensures that you are able to be notified when the page is about to be unloaded
+							*/
 				shutDownHref:'/'
+							/* - {runtime.shutDownHref}
+
+								makes it trivial to trigger the the shutdown callback/handler set by `Radixx.onShutdown`.
+								This config should be set to the value of the `href` or `data-href` attribute of a link or
+								button that triggers/signals the end of the web application session (e.g a logout button) 
+						
+							*/
 			},
-			persistenceEnabled:true
+			universalCoverage:true, 
+									/* - {universalCoverage}
+										
+										make store state changes in one tab available across browser tabs 
+										and update the state on the other tabs (pages) accordingly 
+									*/
+			autoRehydrate:true, 	
+									/* - {autoRehydrate}
+
+										automatically hydrate all stores with their respective state data 
+										upon config initialization so that your state is available to all
+										stores as soon as your components load without having to retrieve
+										data over the network. 
+
+										Great for PWAs!! :)
+									*/
+			persistenceEnabled:false, 
+									/* - {persistenceEnabled}
+
+										make your state change persist even after the browser is closed
+
+										You don't need this config to persist state within the same browser
+										session (i.e. across page loads/refreshes).
+
+										IMPORTANT: 
+											Once {universalCoverage} is set to `true`, 
+											the value of {persistenceEnabled} is automatically set to `true` 
+									 */
+			localHostDev:true 		
+									/* - {localHostDev}
+
+										Works as a helper config that's used with {universalCoverage} for when [Radixx] is
+										used in a 'localhost' developement environment. If Radixx is used in a production app,
+										set this config to `false`.
+
+										Whenever this config is set to `true`, it's important an 'id' attribute on the <html>
+										tag with a unique value.  
+									*/
 		});
 
 		var registeredStores = [];
 		
 		/* 
-			creating action creators - multiple actions can be created for a real-life application 
+			creating action creators - [ multiple actions can be created for a real-life application ]
 		*/
-		w.actions = r.makeActionCreators({
+		w.action_creators = r.makeActionCreators({
 				loadTodos:{
 					type:'LOAD_TODOS',
-					actionDefinition:Radixx.Payload.type.array
+					actionDefinition:Radixx.Payload.type.array /* Filter & Validate action data as `array` for every dispatch */
 				},
 				saveTodo:{
 					type:'SAVE_TODO',
-					actionDefinition:Radixx.Payload.type.object
+					actionDefinition:Radixx.Payload.type.object /* Filter & Validate action data as `object` for every dispatch */
 				}	
 	 	});
 
@@ -66,7 +129,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 			gets dispatched to all available stores.
 
 			PS: You can only access the `nextState` (latest application state) in the last
-				attached middleware in the order in which the middlewares were attached
+				attached middleware (according to the order in which the middlewares were attached)
 
 				If you MUST access the `nextState` in the remaining middleware(s) other than 
 				the last one, then return the `nextState` from the last attached middleware
@@ -123,7 +186,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 		/*
 
-			A Logger Middleware
+			A Logger Middleware - logs to the browser console!
 		*/
 
 		r.attachMiddleware(function(next, action, prevState){
@@ -149,7 +212,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		});
 
 		
-		/* creating a store - [however, multiple stores can be created for a real-life application] */
+		/* creating a store - [ however, multiple stores can be created for a real-life application ] */
 
 		/* 
 			there's a strict structure to how to define a store callback - MUST recieve 2 arguments (the action object and state object) and always return the new state object 
@@ -158,7 +221,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		*/
 
 		/*
-			 As from version 0.1.0 of Radixx, the second argument is no longer an object with 
+			 As from version 0.1.0+ of Radixx, the second argument is no longer an object with 
 			 getters/setter (formerly named - area).
 
 			 Now, the second argument is the state object itself
@@ -208,8 +271,15 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 		var Application = {
 				loadAllState:function(httpresponse){
-					r.eachStore(function(store, next){
+					
+					// hypotectical REST/GraphQL endpoint data
+
+					return r.eachStore(function(store, next){
 						
+						// hydrate each store in one after the other
+						// using the `next()` function 
+
+						// This can also be used in an asynchronous fashion
 						next(store.hydrate(httpresponse.data[store.getTitle()]));
 
 					});
@@ -218,7 +288,23 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 					const promise = new Promise((resolve, reject) => {
 
+								// We are trying to find out if all stores
+								// were auto-rehydrated from the persistent storage
+								// if so, we don't need to make any AJAX request to
+								// retrieve data over the network. Why?
+
+								// because our stores already have the state data needed
+								// to power our application.
+								if(r.isAppStateAutoRehydrated()){
+									return resolve("okay!");
+								}
+
+								// Go over the network to retrieve data 
+								// if our all stores were not auto-rehydrated
+
 								var xhr = new XMLHttpRequest();
+
+								xhr.setRequestHeader("Accept", "application/json, text/plain");
 
 								xhr.onload = function(e){
 									resolve(xhr.responseText);
@@ -230,7 +316,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 								xhr.open(options.url, options.type, true);
 
-								xhr.send(null);
+								xhr.send(options.data);
 					});
 
 					return promise;
@@ -238,12 +324,36 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		};
 
 		Application.ajaxRequest({
-			url:"/all/models",
-			type:"GET"
+			url:"read/all/models",
+			type:"GET",
+			data:null
 		}).then(function(res){
+			if(res !== "okay!"){
+				return Application.loadAllState(
+							JSON.parse(res)
+				);
+			}
+			return res;
+		});
 
-			return Application.loadAllState(JSON.parse(res));
+		// Setup `shutdown` handler which is triggered whenever the shutdown-href
+		// is clicked or the page is unloaded
+		r.onShutdown(function(appState){
 
+			var self = this; // The `Radixx` object is captured in `this`
+
+			// Here, we are sending all the data taken
+			// from all the stores {appState} to the
+			// server just before the page unloads completely
+			return Application.ajaxRequest({
+				url:"write/all/models",
+				type:"PUT",
+				data:appState
+			}).then(function(){
+				// remove the auto-rehydration state from the
+				// perstsent storage
+				self.purgePersistentStorage();
+			});
 		});
 
 		// swapping the store callback with a new one
@@ -297,7 +407,7 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 		;(function(w, d){
 
 			// calling an action - an action triggers changes in the store (by extension the application state)
-			w.actions.loadTodos([
+			w.action_creators.loadTodos([
 				{
 					text:'Buy flowers for my fiancee', 
 					completed:true,
@@ -354,46 +464,77 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 These are methods defined on the global **Radixx** object
 
-- **Radixx.attachMiddleware(** _Function_ middlewareCallback **)**
+- **Radixx.attachMiddleware(** _Function_ middlewareCallback **)** : _void_
 
-> Used to intercept actions that are dispatched by action creators to stores abd/or modify action data where necesssary
+> Used to intercept actions that are dispatched by action creators to stores abd/or modify action data where necesssary before they reach the store.
 
-- **Radixx.makeActionCreators(** _Object_ actionTagMap **)**
+- **Radixx.isAppStateAutoRehydrated(** _void_ **)** : _boolean_
+
+> Used is interogate the auto-rehydration process to find out if the application state data was restored from the persistent storage on the client-side or not.
+
+- **Radixx.makeActionCreators(** _Object_ actionTagMap **)** : _object_ {RadixxActionCreator}
 
 > Used to create an action creators (in Flux Architecture parlance). An object literal having the action method names (as key) and the action tag (as value) is passed into this api method.
 
-- **Radixx.makeStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ initialStoreState] **)**
+- **Radixx.makeStore(** _String_ storeTitle, _Function_ storeCallback [, _Array|Object_ initialStoreState] **)** : _object_ {RadixxStore}
 
-> Used to create a store to which action will be sent using action creators
+> Used to create a store to which action will be sent using action creators.
 
-- **Radixx.onShutdown(** _Function_ shutdownListener **)**
+- **Radixx.purgePersistentStorage(** _void_ **)** : _void_
 
-> Registers a listener that is called whenever Radixx automatically destroys all its stores internally due to a `shutdown-href` trigger
+> Used to delete all the persisted data for auto-rehydration. 
 
-- **Radixx.onDispatch(** _Function_ dispatchListener **)**
+- **Radixx.onShutdown(** _Function_ shutdownListener **)** : _void_
 
-> Registers a listener that is called whenever an action is disptached to the Hub (also called the `Dispatcher` in Flux Architecture parlance)
+> Registers a listener that is called whenever Radixx automatically destroys all its stores internally due to a `shutdown-href` trigger.
 
-- **Radixx.eachStore(** _Function_ storeIterator **)**
+- **Radixx.onDispatch(** _Function_ dispatchListener **)** : _void_
 
-> Used to call a function on each store created by Radixx and perform some operation on that store (operation is defined with the storeIterator)
+> Registers a listener that is called whenever an action is disptached to the Hub (also called the `Dispatcher` in Flux Architecture parlance).
 
-- **Radixx.configure(** _Object_ configurationObject **)**
+- **Radixx.eachStore(** _Function_ storeIterator **)** : _void_
+
+> Used to call a function on each store created by Radixx and perform some operation on that store (operation is defined with the storeIterator).
+
+- **Radixx.configure(** _Object_ configurationObject **)** : _void_
 
 > Used to configure the Radixx store(s). 
 
+### ----------------------------------------------------------------------------------------------------------------
+
 ## Radixx Configuration Options
 
-- **runtime.spaMode**
+- **runtime.spaMode** {boolean} [ EXPERIMENTAL FEATURE ]
 
 > Whether or not the app in an SPA (Single Page Application). If the app is a SPA, then the _shutDownHref_ option doesn't have any effect.
 
-- **runtime.shutDownHref**
+- **runtime.shutDownHref** {string} [ EXPERIMENTAL FEATURE ]
 
-> The Href/Link upon which Radixx should destroy all stores and automatically shutdown and triggers the "onShutDown" handler function.
+> The Href/Link upon which Radixx should destroy all stores and automatically shutdown state tracking. Also triggers the "Radixx.onShutDown()" handler function set prior to call.
 
+- **universalCoverage** {boolean}
+
+> Makes it possible to replicates state changes across multiple browser tabs/windows
+
+- **persistenceEnabled** {boolean}
+
+> Makes it possible to persist application state across browser session
+
+- **autoRehydrate** {boolean}
+
+> Makes it possible to restore persisted state data into all pre-existing stores
+
+### ----------------------------------------------------------------------------------------------------------------
 
 ## Radixx APIs (Properties)
+
+- **Radixx.Helpers**
+
+> Used to provide ancillary logic to SPA framework/library compoenents (e.g. ReactJS)
+
+- **Radixx.Payload.type.boolean**
+
+> Used to signify that action creator method argument/payload MUST always be of type: Boolean
 
 - **Radixx.Payload.type.string**
 
@@ -434,8 +575,8 @@ These are methods defined on the global **Radixx** object
 - **Radixx.Payload.type.numeric.Float**
 
 > Used to signify that action creator method argument/payload MUST always be a Floating-Point number
- 
 
+### ----------------------------------------------------------------------------------------------------------------
 
 ## Store APIs
 
@@ -443,19 +584,19 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 - **store.hydrate(** _Array|Object_ initialStoreData **)**
 
-> Used to put/insert data and/or state into the store directly without using an action. This call affects only the store in context. actions however, affect all stores in the web application.
+> Used to put/insert/overwrite state data in the store directly without using an action creator. This call affects only the store in context. However, whenever actions are dispatched by an action creator, they affect all stores in the web application.
 
 - **store.getTitle(** _void_ **)**
 
-> Used to retrieve the storeTitle used in creating the store
+> Used to retrieve the storeTitle used in creating the store.
 
 - **store.getState(** _void|String_ stateKey **)**
 
-> Used to retrieve the current state of the store
+> Used to retrieve the current state of the store.
 
 - **store.makeTrait(** _Function_  traitFactory **)**
 
-> Used to create data items which are based on the store
+> Used to create data items which are based on the store.
 
 - **store.setChangeListener(** _Function_ changeListener **)**
 
@@ -491,6 +632,7 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 - Infinite/Finite Undo/Redo + Time Travel 
 - Use of Traits (as Mixins) for ReactJS and VueJS (even though most people think _mixins_ are dead and composition should be the only thing in used, i still think mixins have a place)
 - Can replace the store callback (similar to **replaceReducer()** in _Redux_)
+- Can overwrite store state data on the fly using **hydrate()**
 - An extended Loose Coupling between Radixx Dispatcher and Controllers/Components.
 - A transparent way for separating mutation, dependence and asynchronousity in application state management.
 - No need to **<q>emit</q>** change events from within a store registration callback.
@@ -589,7 +731,7 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 					/* action.actionKey is 'profile' */
 
 					if(action.actionKey
-						&& !!stuffs[actionKey]){
+						&& !!stuffs[action.actionKey]){
 						stuffs[action.actionKey].fullName = action.actionData;
 					}
 
@@ -612,8 +754,8 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 			var __callback;
 
 			return {
-				beforeCreate:function(){
-				
+				_loadAppData:function(){
+
 					// an ajax call may come in here ...
 
 					/*	
@@ -623,13 +765,23 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 					*/
 
-					axios.get('/get/data')
-						.then(function( ajaxResponseData){
-							store.hydrate( ajaxResponseData );
+					if(!Radixx.isAppStateAutoRehydrated()){
+						axios.get('/get/data')
+							.then(function( ajaxResponseData){
+								store.hydrate( ajaxResponseData );
 						})
-						.catch(function(error){
+							.catch(function(error){
 
+						});
+					}
+				},
+				beforeCreate:function(){
+				
+					Radixx.configure({
+						autoRehydrate:true
 					});
+
+					this._loadAppData();
 
 				},
 				created:function(){
@@ -796,6 +948,8 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 >AngularJS 1.x
 
+If you are using **Radixx** with **AnugularJS / Angular 1.x**, then you need to include the provider made available in this repo (_ng-radixx.js_) and imprt/inject it into the `config` function like as below using '$ngRadixxProvider' name.
+
 ```js
 
 // Top-level Module { Using the Angular 1.x Provider Helper - $ngRadixx }
@@ -827,9 +981,15 @@ angular.module("appy", [
 		$ngRadixxProvider.configure({
 			runtime:{
 				spaMode:false,
-				autoShutDownHref:'/#/logout'
+				shutDownHref:'/#/logout'
 			},
+			universalCoverage:true,
+			autoRehydrate:false,
 			persistenceEnabled:true
+		});
+
+		$ngRadixxProvider.attachMiddleware(function(next, action, prevState){
+			// ....
 		});
 });
 
@@ -1096,14 +1256,17 @@ angular.module("appy.todos", [
 
 
 
-
-
-
-
-
-
 	// Asuuming to use socket.io (client-side)
-	var socket = io.connect('http://locahost:8005', {timeout:300000, 'reconnection':true, transports:["websockets"]}),
+	var socket = io.connect(
+					'http://locahost:8005/websockets', 
+					{
+						timeout:300000, 
+						reconnection:true, 
+						transports:["websockets"]
+					}
+	),
+
+	/* Radixx Action Creator */
 	
 	actions = Radixx.makeActionCreators({
 		'loadShoes':{
@@ -1119,6 +1282,8 @@ angular.module("appy.todos", [
 				actionDefinition:Radixx.Payload.type.object
 		}
 	}),
+
+	/* Radixx Store */
 
 	store = Radixx.makeStore('shoes', function(action, state){
 		
@@ -1152,10 +1317,9 @@ angular.module("appy.todos", [
 	}, {shoes:[],jewellry:[]});
 			
 
+	/* ReactJS - Presentation Component Mixin */
 
-
-
-	var PresentationTrait = store.makeTrait(function(store){
+	const PresentationTrait = store.makeTrait(function(store){
 	
 		return {
 			componentWillRecieveProps:function(nextProps){
@@ -1202,14 +1366,14 @@ angular.module("appy.todos", [
 					canAddMoreShoes:true,
 					loadingShoes:false
 				};
-
-
 			}	
 		};
 
 	});
 
-	var ContainerTrait = store.makeTrait(function(store, listener){
+	/* ReactJS - Container Component Mixin */
+
+	const ContainerTrait = store.makeTrait(function(store, listener){
 
 			return {
 				componentWillUnmount:function(){
@@ -1291,7 +1455,7 @@ angular.module("appy.todos", [
 				var form = e.target;
 
 				var payload = {
-					type:this.props.shoes.length,
+					len:this.props.shoes.length,
 					name:form.elements['add'].value
 				};
 
@@ -1372,26 +1536,40 @@ angular.module("appy.todos", [
 
 	var TheApp = React.createClass({
 			_loadAppData:function(){
+				
+				if(!Radixx.isAppStateAutoRehydrated()){
 
-				axios.get("https://getalldata.example.com").then(function(response){
-					Radixx.eachStore(function(store, next){
+					/* Assuming `Axios` is loaded in - return the promise */
 
-						var state = store.getState(), title = "";
+					axios.get("https://getalldata.example.com").then(function(response){
 						
-						if(Object.isEmpty(state)){
+						Radixx.eachStore(function(store, next){
 
-							title = store.getTitle();
+							var state = store.getState(), title = "";
+							
+							if(Object.isEmpty(state)){
 
-							store.hydrate(response[title]);
-						}
-								
-						next();
+								title = store.getTitle();
+
+								store.hydrate(response[title]);
+							}
+									
+							next();
+						});
+
+					}).catch(function(error){
+						console.log(error);
 					});
-				}).catch(function(error){
-					console.log(error);
-				});
+				}
 			},
 			componentWillMount:function(){
+
+					/* Configure Radixx */
+
+					Radixx.configure({
+						universalCoverage:true,
+						autoRehydrate:true
+					});
 
 					/* always listen for dispatches */
 
@@ -1492,17 +1670,30 @@ angular.module("appy.todos", [
 ## Browser Support
 
 - IE 8.0+ (Trident)
-- Edge (EdgeHTML)
-- Opera 10.0+ (Presto, Blink)
+- Edge 13+ (EdgeHTML)
+- Opera 10.5+ (Presto, Blink)
 - Chrome 3.0+ (Webkit, Blink)
 - Firefox 3.5+ (Gecko)
-- Safari 4.0+ (AppleWebkit)
+- Safari 5.0+ (AppleWebkit)
 
 ## Gotchas/Caveats
 
 - Trying to `swap` the store callback using the **swapCallback()** method before setting a store listener using **setChnageListener()** will always throw a type error.
 
-- Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called.
+- Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called. Only middlewares and store state change listeners are called. Also, the data in the store is overwritten with that passed as an argument to the **hydrate()** method.
+
+- It's COMPULSORY to call **Radixx.configure()** before your application code loads (after loading the Radixx library) else **Radixx** may not work properly or as expected. If you would like to setup **Radixx** with the default config simply call as below: 
+
+```js
+
+	.
+	.
+	.
+
+	Radixx.configure({
+
+	});
+```
 
 ## License
 
@@ -1510,8 +1701,8 @@ MIT
 
 ## Live Projects { that use _Radixx_ for state management in production }
 
-- [**NTI Portal**](https://my.nti.edu.ng) - National Teachers Institute Kaduna
-- [**Stitch NG**](https://app.stitch.ng/cabinet) - (Coming Soon) Fashion Technology Product
+- [**NTI Portal**](https://my.nti.edu.ng/applicants/apply) - National Teachers Institute Kaduna - Applicants Section
+- [**Stitch NG**](https://www.stitch.ng) -  Fashion Technology Product
 
 ## Contributing
 

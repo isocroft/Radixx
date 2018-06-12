@@ -7,17 +7,7 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 ## Code Requests
 
-- add more configuration options for Radixx
-
-```js
-
-	Radixx.configure({
-		universalCoverage:true /* make state available through every tab/window */
-	})
-
-```
-
->Configure the order in which the <q>dispacth</q> triggers the store callbacks.
+>Configure the manner in which the <q>dispacth</q> triggers the store callbacks.
 
 - define **Radixx.onError(function: fn)** as part of _Radixx_ APIs as seen below:
 
@@ -27,18 +17,20 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 	// below is the form of the implementation
 
-	Radixx.onError(function(errorObject){
+	Radixx.onError(function(errorObject, callStack){
 		
 		switch(errorObject.name){
-			case "TypeError":
-			case "ReferenceError":
-			case "RangeError":
-			case "SyntaxError":
-				console.log("MyApp: ", errorObject.message, errorObject.stack);
+			case "RadixxTypeError":
+			case "RadixxBatchError":
+				console.error("MyApp: [Radixx] ", errorObject.message, errorObject, callStack);
 			break;
 
-			case "RadixxError":
-				console.log("MyApp: [Radixx] ", errorObject.context, errorObject.message, errorObject.stack);
+			case "RadixxMiddlewareError":
+				console.warn("MyApp: [Radixx] ", errorObject.context, errorObject.message, callStack);
+			break;
+
+			default:
+				throw errorObject;
 			break;
 		}
 
@@ -49,8 +41,6 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 - Optimize <q>onDispatch</q> event not to fire only when any store data ACTUALLY changes by taking a simple diff of the state object and trigger store callbacks conditionally (trigger only when store state data changes - i.e. when there is a change/delta between the previous state and the new state)
 
-- Implement a way to enable store data accessible across windows/tabs by making it possible to propagate store change events across windows/tabs using [localStorage] events
-
 - Build and Integrate support for GraphQL (if possible build in a small and efficient GraphQL client as part of Radixx) in an easy way
 
 - Add _bower_ and _yarn_ package manager support
@@ -58,4 +48,7 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 ## Code Of Conduct
 
-Please, be informed that open-source projects are for sharing and learning as well as helping other out with ...
+Please, be informed that open-source projects are for sharing and learning as well as helping other out with solving pertinent developer issues or challenges. By deciding to contribute to Radixx via PRs or Code Requests or Documentation Updates you also agree to be bound by the Code Of Conduct
+
+- Before you log any issue, please search through the already logged issues to see if the issue has been log hitherto.
+- That in the course of contrbuting ideas, addtional features (code) or bug fixes, you do so with mutual respect and decorum.
