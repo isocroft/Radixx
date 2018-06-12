@@ -5,6 +5,15 @@
 
 
 describe("The Radixx Flux Library :", function() {
+
+			Radixx.configure({
+				runtime:{
+					spaMode:false
+				},
+				universalCoverage:true,
+				autoRehydrate:true,
+				localHostDev:true
+			});
   
             var actions = Radixx.makeActionCreators({
             		'createItem':{
@@ -25,7 +34,7 @@ describe("The Radixx Flux Library :", function() {
 
             					switch(action.actionType){
             						case "CREATE_ITEM":
-            							
+
             							if(items.length === 0){
             								items.push(action.actionData);
             							}
@@ -64,7 +73,7 @@ describe("The Radixx Flux Library :", function() {
         			),
         			dispatchListenerSpy:jasmine.createSpy('dispatchListenerSpy() spy').and.callFake(
         					function(appState){
-
+        						console.log("on-dispatch > \n\n\t appState: ", appState);
         					}
     				)
             	};
@@ -122,7 +131,7 @@ describe("The Radixx Flux Library :", function() {
 								}		
 							};			
 				    },
-				    toBeAnAction:function(util, customEqualityTesters){
+				    toBeAnActionCreator:function(util, customEqualityTesters){
 
 				    	return {
 						       compare:function(actual, expected){
@@ -133,7 +142,7 @@ describe("The Radixx Flux Library :", function() {
 							   
 							        var result = {};
 									
-									result.pass = util.equals((actual.toString() == "[object RadixxAction]"), expected, customEqualityTesters);
+									result.pass = util.equals((actual.toString() == "[object RadixxActionCreator]"), expected, customEqualityTesters);
 				    
 									if(result.pass){
 									     result.message = "It's a [Radixx] action object";
@@ -181,7 +190,7 @@ describe("The Radixx Flux Library :", function() {
 			
 			it("should expose relevant objects and API methods", function() {
 			
-				   expect(actions).toBeAnAction();
+				   expect(actions).toBeAnActionCreator();
 				
 				   expect(actions.createItem).toBeAFunction();
 
