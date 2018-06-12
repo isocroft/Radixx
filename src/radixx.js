@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.1.0
+  * @version: 0.1.1
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -35,9 +35,138 @@ __beforeunload = wind.onbeforeunload,
 
 __unload = wind.onunload,
 
-_tag = null,
+__hasDeactivated = false,
 
-_defaultConfig = {runtime:{spaMode:true,shutDownHref:''},persistenceEnabled:false},
+_ping = function(appState){
+
+		return;
+},
+
+_checkAndKillEventPropagation = function(event){
+	if(event.type === 'click'){
+   		if(event.stopPropagation){
+   			event.stopPropagation();
+   		}else{
+   			event.cancelBubble = true;
+   		}
+   	}
+},
+	 
+$createBeforeTearDownCallback = function(config) {
+										
+	       	// push to event/UI queue (using `setTimeout`) to ensure execution
+	       	// as beforeunload dialog blocks the JS thread waiting for
+	       	// the user to either click button "Leave this Page" OR "Stay on Page" button
+
+	       	// before any `setTimeout` function(s) are called 
+	       	// (i.e any event/UI queue callbacks registered using `setTimeout`)
+
+	       	// If "Leave this Page" button is clicked, then the `unload` event fires
+	       	// if not, the `unload` event doesn't fire at all
+		   
+		   	return function(e){
+
+			       // @See: https://greatgonzo.net/i-know-what-you-did-on-beforeunload/
+
+			       /* 
+			       		`lastActivatedNode` variable is used to track the DOM Node that last 
+			       		had focus (or was clicked) just before the browser triggered the `beforeunload` event 
+		       		*/
+
+			        var lastActivatedNode = (window.currentFocusElement // Mobile Browsers [ Custom Property ]
+			        			|| e.explicitOriginalTarget // old/new Firefox
+									|| (e.srcDocument && e.srcDocument.activeElement) // old Chrome/Safari
+										|| (e.currentTarget && e.currentTarget.document.activeElement) // Sarafi/Chrome/Opera/IE
+											|| e.srcElement
+												|| e.target), 
+			       	 	leaveMessage = "Are you sure you want to leave this page ?", // if the "imaginary" user is logging out
+			       	 	isLogoff = ((typeof lastActivatedNode.hasAttribute == 'function' && lastActivatedNode.hasAttribute('data-href') && lastActivatedNode.getAttribute('data-href').indexOf(config.runtime.shutDownHref) > -1) 
+			       	 					|| (('href' in lastActivatedNode) && (lastActivatedNode.href.indexOf(config.runtime.shutDownHref) > -1))),
+				       	__timeOutCallback = function(){
+				       			
+					           	__hasDeactivated = __timeOutCallback.lock;
+
+				       	};
+
+						// console.log('Node: '+ lastActivatedNode);
+					
+				       	__timeOutCallback.lock = __hasDeactivated = true; 
+				       	beforeUnloadTimer = setTimeout(__timeOutCallback, 0);  
+
+				       	if(isLogoff){ // IE/Firefox/Chrome 34+
+				       		if(!!~e.type.indexOf('beforeunload')){
+				       			e.returnValue = leaveMessage; 
+				       		}else{
+				       			_confirm = confirm(leaveMessage);
+				       			if(!_confirm){
+				       				_checkAndKillEventPropagation(e);
+				       			}
+				       		}
+				       	}else{
+				       		_checkAndKillEventPropagation(e);
+				       	}
+			       
+	       		 		/* if (isLogoff) isn't true, no beforeunload dialog is shown */
+		       			return ((isLogoff) ?  ((__timeOutCallback.lock = false) || leaveMessage) : clearTimeout(beforeUnloadTimer));
+   					
+       		};
+	       
+},
+   
+$createTearDownCallback = function(hub){ 
+
+	return function(e){
+
+		/*
+
+	   		This seems to be the best way to setup the `unload` event 
+	   		listener to ensure that the load event is always fired even if the page
+	   		is loaded from the `bfcache` (Back-Forward-Cache) of the browser whenever
+	   		the back and/or forward buttons are used for navigation instead of links.
+
+	   		Registering it as a property of the `window` object sure works every time
+		*/
+
+				if(!__hasDeactivated){
+
+					setTimeout(function(){
+
+							var appstate = {};
+						
+							hub.eachStore(function(store, next){
+
+								var title = store.getTitle();
+
+								appstate[title] = store.getState(); 
+							
+								store.disconnect();
+								store.destroy();
+
+								next();
+
+							});
+
+							_ping.call(hub, appstate);
+
+							if(e.type != 'click'){
+								__unload(e);
+							}
+
+					}, 0);
+				}
+		};
+
+},
+
+_defaultConfig = {
+		runtime:{
+			spaMode:true, shutDownHref:''
+		},
+		persistenceEnabled:false,
+		autoRehydrate:false,
+		universalCoverage:false,
+		localHostDev:false
+},
 
 Slc = ([]).slice,
 
@@ -47,13 +176,14 @@ Values = {
             "array":Array,
             "object":Object,
             "string":String,
+            "boolean":Boolean,
             "date":Date,
 	    	"regexp":RegExp,	
             "function":Function
 	},
 	isOfType:function(type, value){
 		
-		var type = type.toLowerCase();
+		var type = type.toLowerCase(); // hoisting
 		
 		if(typeof type === 'function'){
 			
@@ -93,8 +223,8 @@ _extend = function(source, dest){
 
 			if(typeof dest[prop] === "object"
 	 			&& dest[prop] !== null){
-			 	return _extend(source[prop], dest[prop]);
-			 }else if(Hop.call(source, prop)){
+			 	merge[prop] = _extend(source[prop], dest[prop]);
+			 }else if(source && Hop.call(source, prop)){
 			 	merge[prop] = source[prop];
 			 }else {
 			 	merge[prop] = dest[prop];
@@ -103,11 +233,6 @@ _extend = function(source, dest){
 	 }
 
 	return merge;
-},
-
-_ping = function(appState){
-
-		return;
 },
 
 _curry = function (func, args, context){
@@ -212,9 +337,10 @@ Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */
 })(wind, wind.document);
 
 Object.create = Object.create || function(o, props){
-	
+	'use strict';
+
 	if (o === null || !(o instanceof Object)) {
-		throw TypeError("");
+		throw TypeError("Object.create called on null or non-object argument");
 	}
 
 	var prop;
@@ -272,7 +398,7 @@ Object.keys = Object.keys || function (fu){
 // Store constructor
 var Store = (function(){
 
-	var requirementTypes = ['graph-ql'];
+	var requirementTypes = ['graph-ql', 'rest'];
 
 	var serviceRequirementsMap = {};
 	
@@ -331,7 +457,7 @@ var Store = (function(){
 
 		this.toString = function(){
 
-			return "[object RadixxAction]";
+			return "[object RadixxActionCreator]";
 		};
 	}
 
@@ -368,7 +494,7 @@ var Store = (function(){
              index = fireStart || 0;
              fireEnd = pending.length;
              for(fireStart = 0; index < fireEnd; index++){
-             		// @TODO: need to curry args instead of directly binding them
+             		// @TODO: need to curry args instead of directly binding them #DONE
                   setTimeout(_curry(pending[index], data[1], data[0])/*.bind(data[0], data[1])*/, 20); // fire asynchronously (Promises/A+ spec requirement)
              }
              firing = false; // firing has ended!
@@ -504,7 +630,7 @@ Futures = function(){
     promise = {};
     
     
-    // using a closure to define a function on the fly...
+    // using a closure to define all the functions on the fly...
 
     for(d in defTracks){
         if(Hop.call(defTracks, d)){
@@ -539,19 +665,19 @@ Futures = function(){
         args.forEach(function(item, i){
                      item = (typeof item == "function") && item;
                      self[defTracks[keys[i]][0]](function(){
-					       var rt;
-					       try{ 
-					       		/*
-					       			Promises/A+ specifies that errors should be contained
-					       			and returned as value of rejected promise
-					       		*/
-                               rt = item && item.apply(this, arguments);
-                           }catch(e){ 
-						       rt = this.reject(e);
-						   }finally{
-						       if(rt && typeof rt.promise == "function")
-                                    ret = rt.promise();						   
-						   }	   
+							var rt;
+							try{ 
+								/*
+									Promises/A+ specifies that errors should be contained
+									and returned as value of rejected promise
+								*/
+							   rt = item && item.apply(this, arguments);
+							}catch(e){ 
+							   rt = this.reject(e);
+							}finally{
+							   if(rt && typeof rt.promise == "function")
+							        ret = rt.promise();						   
+							}	   
                      });
         });
         return self.promise(ret);
@@ -583,11 +709,13 @@ Futures = function(){
 
 	var $instance = null,
 
-		perstStore = (win.top !== win || !win.localStorage) ? null : win.localStorage,
+		persistStore = (win.top !== win || !win.localStorage) ? null : win.localStorage,
 
 	    sessStore = (win.top !== win || !win.sessionStorage ? (win.opera && !(Hop.call(win, 'opera')) ? win.opera.scriptStorage : {} ) : win.sessionStorage),
 
 	    mode = win.document.documentMode || 0, 
+
+	    autoRehydrationOccured = false,
 
 	    config = {
 
@@ -639,7 +767,7 @@ Futures = function(){
 	},
 
 	isNullOrUndefined = function(obj){
-			return (obj === void 0);
+			return (obj == void 0);
 	},
 
 	triggerEvt = function(target, eType, detail, globale){
@@ -649,9 +777,10 @@ Futures = function(){
 								cancelable:true,
 								bubbles:false
 				}), 
-				dispatch = function(){ return false; };
+				dispatch = function(){ return false; }; // a stub function - just in case
 
-			if((!('target' in evt)) && evt.cancelBubble === true){
+			if((!('target' in evt)) 
+					&& evt.cancelBubble === true){
 
 				target.setCapture(true);
 			}
@@ -660,11 +789,11 @@ Futures = function(){
 			dispatch = target[ (!('target' in evt) ? "fireEvent" : "dispatchEvent") ];
 	 
 	    	// Including support for IE 8 here ;)
-	    	return dispatch.apply(target, (!('target' in evt) ? ["on"+eType, evt ] : [evt])); 
+	    	return dispatch.apply(target, (!('target' in evt) ? ["on"+eType, evt ] : [ evt ])); 
 		   
  	},
 
-	operationOnStoreSignal = function(fn, queueing, action, area) { 
+	operationOnStoreSignal = function(fn, queueing, area, action) { 
 
 	    // first, retrieve the very first state data and cache it
 	    if(fn.$$history.length == 1 
@@ -677,24 +806,29 @@ Futures = function(){
 	    fn.$$history = fn.$$history.slice(0, fn.$$historyIndex + 1);
 	    
 	    // lets setup a place to store new state, also mark out the context of this call
-	    var newStoreState = false, len;
+	    var newStoreState = false, len, _key;
 
 	    // create a new state of the store data by applying a given
 	    // store callback function to the current history head
 
 	    if(queueing === null){
 
-	    	fn.$$history.length = 0; // clear out the store state since this is a hydrate call
+	    	if(action !== null){
 
-	    	newStoreState = action.actionData;
+		    	newStoreState = action.actionData;
+
+		    }else{
+
+		    	newStoreState = fn.$$history[fn.$$historyIndex];
+		    }
+
+		    coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 	    }else{
 	    	
-	    	area._aspect = action.actionKey;
-
-	    	area._type = action.actionType;
-
 	    	newStoreState = fn.call(queueing, action, area.get());
+
+	    	coverageNotifier.$$historyLocation = null;
 
 	    }
 
@@ -706,20 +840,65 @@ Futures = function(){
 			return;
 		}
 
+		_key = area.put(newStoreState);
 
-	    area.put(newStoreState);
+		coverageNotifier.$$currentStoreTitle = _key;
 	    
-	    // add the new state to the history list and increment
-	    // the index to match in place
-	    len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
-	    
-	    fn.$$historyIndex++;
+	    if(action !== null){
 
-	    if(fn.$$history.length > 21){ // can't undo/redo (either way) more than 15 moves at any time
+	    	if(action.source !== 'hydrate'){
+    				;
+	    	}
 
-	  		fn.$$history.unshift();
-	    }
+	    	triggerEvt(
+					win.document, 
+					'storesignal', 
+					{
+						url:win.location.href,
+						key:_key,
+						newValue:newStoreState,
+						source:win,
+						aspect:action.actionKey,
+						type:action.actionType
+					}, 
+					win
+			);
+
+	    	coverageNotifier.$$withAction = true;
+
+		    // add the new state to the history list and increment
+		    // the index to match in place
+		    len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
+		    
+		    fn.$$historyIndex++;
+
+		    if(fn.$$history.length > 21){ // can't undo/redo (either way) more than 21 moves at any time
+
+		  		fn.$$history.unshift();
+		    }
+
+	    }else{
+
+	    	return newStoreState;
+    	}
 	   
+	},
+
+	getAppOriginForPersist = function(cfg){
+
+		return String(location.origin + (cfg.localHostDev? ':'+document.documentElement.id : ''));
+	},
+
+	generateTag = function(origin){
+
+		var _cdata = persistStore.getItem(origin);
+		
+		if(!isNullOrUndefined(_cdata)){
+
+			return getNormalized(_cdata);
+		}
+
+		return String(Math.random()).replace('.','x_').substring(0, 11);
 	},
 	  
     getNormalized = function(val){
@@ -746,10 +925,22 @@ Futures = function(){
 			return String(val);
 		}
 	},
+
+	setAppState = function(appState){
+
+		_each(appState, function(isolatedState, storeTitle){
+
+			var area = new Area(storeTitle);
+
+			area.put(isolatedState);
+		});
+
+		fireWatchers(appState, true);
+	},
 	   
     getAppState = function(){
 
-		var appStateData = {}, key, indexStart, indexEnd, values;		
+		var appStateData = {}, key, indexStart, indexEnd, values, _data;		
 		
 	    	if(('key' in sessStore) 
 		   			&& (typeof sessStore.key == 'function')){
@@ -757,7 +948,13 @@ Futures = function(){
 				// We iterate this way so we can support IE 8 + other browsers
 				for(var i=0; i < sessStore.length; i++){
 					key = sessStore.key(i);
-					appStateData[key] = getNormalized(sessStore.getItem(key)) || null;
+					_data = sessStore.getItem(key);
+					
+					if(!_data){
+						;
+					}
+
+					appStateData[key] = getNormalized(_data) || null;
 				}
     		}else{
 			
@@ -772,11 +969,13 @@ Futures = function(){
 
 						indexEnd = win.name.indexOf('|', indexStart);
 
-						values = (win.name.substring(indexStart, indexEnd)).split(':=:');
+						values = (win.name.substring(indexStart, indexEnd)).split(':=:') || ["", null];
+
+						_data = values[1];
 
 					}
 
-					appStateData[key] = getNormalized(values[1]) || null;
+					appStateData[key] = getNormalized(_data) || null;
 				}
 			}
 
@@ -840,22 +1039,8 @@ Futures = function(){
 					sessStore.commit();
 				}
 			}
-			
-			triggerEvt(
-					win.document, 
-					'storesignal', 
-					{
-						url:win.location.href,
-						key:key,
-						newValue:value,
-						source:win,
-						aspect:this._aspect,
-						type:this._type
-					}, 
-					win
-			);
 
-			return value;
+			return key;
 		};
 
 		this.get = function(){
@@ -902,6 +1087,58 @@ Futures = function(){
 		return this;
 	},
 
+	getCurrentActionOnStack = function(){
+
+		var actionStack = operationOnStoreSignal.$$redoActionsStack;
+
+		if(actionStack.lenth){
+			return actionStack[actionStack.length - 1];
+		}
+
+		return null;
+	},
+
+	coverageNotifier = function(appState){
+
+		var currentAction = null, _tag = coverageNotifier.$$tag;
+
+		if(arguments.callee.$$withAction === true){
+			currentAction = getCurrentActionOnStack();
+			arguments.callee.$$withAction = null;
+		}
+	
+		if(!isNullOrUndefined(_tag)
+			&& (persistStore !== null)){
+
+			persistStore.setItem(_tag, setNormalized({
+						state:appState, 
+						action:currentAction,
+						title:arguments.callee.$$currentStoreTitle, 
+						historyLoc:arguments.callee.$$historyLocation
+			}));
+
+			arguments.callee.$$historyLocation = null;
+		} 
+		
+	},
+
+	fireWatchers = function(state, omitCallback){
+
+		var pos, watcher;
+
+		for(pos in watchers){
+			if(Hop.call(watchers, pos)){
+				watcher = watchers[pos];
+				if(omitCallback){
+					if(watcher.$$canOmit){
+						continue;
+					};
+				}
+				watcher.call(null, state);
+			}
+		}
+	}
+
 	handlePromises = function(){
 
 		var promise = null, state = getAppState();
@@ -918,25 +1155,65 @@ Futures = function(){
 
 		waitQueue.length = 0;
 
-		for(var watcher in watchers){
-			if(Hop.call(watchers, watcher)){
-				watchers[watcher].call(null, state);
-			}
-		}
-
-		if(!isNullOrUndefined(_tag)
-			&& (perstStore !== null)){
-			perstStore.setItem('_tag', JSON.stringify(state));
-		}
+		fireWatchers(state);
 		
 	},
 
 	enforceCoverage = function(e){
 
+		var _origin = arguments.callee.$$origin, 
+			_tag = arguments.callee.$$tag, 
+			_action = null,
+			_state = null,
+			_title = null,
+			_hloc = null,
+			_composedData = null,
+			observer = null;
+
 		// Detecting IE 8 to apply mild hack on event object
-		if(('remainingSpace' in sessStore) && (e.detail.source === null)){
+		if(('remainingSpace' in sessStore)){
+			e.key = e.detail.key;
+		}
+
+		if(!persistStore
+			|| _origin === e.key){ // if we can't find the key in the array `storeKeys`
 			return;
 		}
+
+		_composedData = getNormalized(persistStore.getItem(_tag));
+
+		if(_tag === e.key
+			&& isNullOrUndefined(_composedData)){
+			return;
+		}
+
+		_state = _composedData.state;
+
+		_action = _composedData.action;
+
+		_title = _composedData.title;
+
+		_hloc = parseInt(_composedData.historyLoc);
+
+		if(_action !== null){
+			operationOnStoreSignal.$$redoActionsStack.push(_action);
+		}
+
+		if(_hloc !== null){
+			observer = observers[_title];
+			if(observer){
+				observer.$$historyIndex = _hloc;
+				if(_hloc === -1){
+					observer.$$history.length = 0;
+				}
+			}
+		}
+
+		if(_state){
+			setTimeout(
+				setAppState.bind(null, _state)
+			, 0); 
+		} 
 
 	},
 
@@ -965,39 +1242,66 @@ Futures = function(){
 
 		this.middlewares = [];
 
-		if(win.document.addEventListener){
-			/* IE 9+, W3C browsers all expect the 'storage' event to be bound to the window */
-
-			win.addEventListener('storage', enforceCoverage, false);
-			win.document.addEventListener('storesignal', stateWatcher, false);
-		}else if(win.document.attachEvent){
-			/* IE 8 expects the 'storage' event handler to be bound to the document 
-				and not to the window */
-
-			win.document.attachEvent('onstorage', enforceCoverage);
-			win.document.attachEvent('onstoresignal', stateWatcher);
-		}
-
 		operationOnStoreSignal.$$undoActionsStack = [];
 
 		operationOnStoreSignal.$$redoActionsStack = [];
 	}
 
+	Dispatcher.prototype.updateAutoRehydrationState = function(){
+		autoRehydrationOccured = true;
+	}
+
+	Dispatcher.prototype.getAutoRehydrationState = function(){
+		return autoRehydrationOccured;
+	}
+
 	Dispatcher.prototype.setMiddleware = function(middleware) {
 		
 			if(typeof middleware === 'function'
-				/*&& (middleware.length >= 2 && middleware.length <= 3)*/){
+				/*&& (middleware.length >= 2)*/){
 
 				return this.middlewares.push(middleware);
 			}
 
-			throw new Error("Inavlid Middleware Callback -");
+			throw new Error("Radixx: Inavlid Middleware Callback - Must be a Function with Parameters ( >= 2 )");
 
 	};
 
 	Dispatcher.prototype.hasMiddleware = function() {
 		
 			return (this.middlewares.length > 0);
+
+	};
+
+	Dispatcher.prototype.initCatchers = function(config){
+
+			if(config.autoRehydrate){
+				if(!isNullOrUndefined(enforceCoverage.$$tag) 
+					&& persistStore)
+				var data = getNormalized(persistStore.getItem(enforceCoverage.$$tag));
+				if(data instanceof Object 
+						&& data.state){
+					setAppState(data.state);
+					this.updateAutoRehydrationState();
+				}
+			}
+
+			if(win.document.addEventListener){
+				/* IE 9+, W3C browsers all expect the 'storage' event to be bound to the window */
+				if(config.universalCoverage){
+					win.addEventListener('storage', enforceCoverage, false);
+				}
+
+				win.document.addEventListener('storesignal', stateWatcher, false);
+			}else if(win.document.attachEvent){
+				/* IE 8 expects the 'storage' event handler to be bound to the document 
+					and not to the window */
+				if(config.universalCoverage){
+					win.document.attachEvent('onstorage', enforceCoverage);
+				}
+
+				win.document.attachEvent('onstoresignal', stateWatcher);
+			}
 
 	};
 
@@ -1084,28 +1388,116 @@ Futures = function(){
 		// Pass this on to the event queue [await]
 		win.setTimeout(handlePromises, 0);
 
-		var stateArea = new Area(hydrateAction.target);
+		var stateArea = new Area(hydrateAction.target),
+			regFunc = observers[hydrateAction.target];
 
 		operationOnStoreSignal.$$redoActionsStack.length = 0;
 
 		operationOnStoreSignal.$$redoActionsStack.push(hydrateAction);
 
+		regFunc.$$history.length = 0; // clear out the store state since this is a hydrate call
+
+    	regFunc.historyIndex = -1;
+
 		operationOnStoreSignal.apply(
 			null, 
 			[
-				observers[hydrateAction.target], 
+				regFunc, 
 				null, 
-				hydrateAction, 
-				stateArea
+				stateArea,
+				hydrateAction
 			]
 		);
 
 	};
 
+	Dispatcher.prototype.handleStoreMutation = function(store, mutationType){
+
+		if(!mutationType){
+			return;
+		}
+
+		var storeTitle = store.getTitle(), 
+
+			isolatedState = {},
+
+			regFunc = this.getRegistration(storeTitle), 
+
+			stateArea = new Area(storeTitle);
+
+			switch(mutationType){
+
+				case 'undo':
+					if(store.canUndo()){
+						
+						--regFunc.$$historyIndex;
+
+						isolatedState[storeTitle] = operationOnStoreSignal.apply(null,
+							[
+								regFunc,
+								null,
+								stateArea,
+								null
+							]
+						); 
+
+						// Pass this on to the event queue 
+						win.setTimeout(fireWatchers.bind(null, isolatedState), 0);
+
+						return true;
+					}
+				break;
+				case 'redo':
+					if(store.canRedo()){
+
+						++regFunc.$$historyIndex;
+
+						isolatedState[storeTitle] = operationOnStoreSignal.apply(null,
+							[
+								regFunc,
+								null,
+								stateArea,
+								null
+							]
+						);
+
+						// Pass this on to the event queue 
+						win.setTimeout(fireWatchers.bind(null, isolatedState), 0);
+
+						return true;
+
+					}
+				break;
+			}
+
+			return false;
+	};
+
+	Dispatcher.prototype.rebuildStateFromActions = function(){
+
+		var actionsStack = operationOnStoreSignal.$$redoActionsStack;
+
+		_each(actionsStack, function(action, index){
+
+			var stateArea;
+
+			for(title in observers){
+				if(Hop.call(observers, title)){
+
+					stateArea = new Area(title);
+
+					observers[title].call(action, stateArea.get());
+				}
+			}
+
+		}, operationOnStoreSignal);
+	}
+
 	Dispatcher.prototype.signal = function(action){ 
 
 		var compactedFunc = null,
-			resolver = function(observers, dispatcher, action, prevState) {
+			// this is the function that does the actual dispatch of the 
+			baseDispatcher = function(observers, dispatcher, action, prevState) {
 
 					var title, stateArea = null; 
 
@@ -1120,15 +1512,33 @@ Futures = function(){
 								[
 									observers[title], 
 									dispatcher.queueing, 
-									action, 
-									stateArea
+									stateArea,
+									action
 								]
 							);
 						}	
 					}
 
 					return getAppState();
-		};		
+		},
+
+		boundBaseDispatcher = baseDispatcher.bind(null, observers, this),
+		adjoiner = {
+				/*createActionObject:function(_data, _type){
+					 
+					 return {
+					 	source:"",
+					 	actionType:_type,
+					 	actionData:_data,
+					 	actionKey:null
+					 };
+				},*/
+				createDispatchResolver:function(_action){
+
+					return boundBaseDispatcher.bind(null, _action);
+				}
+		},
+		_hasMiddleware = this.hasMiddleware();		
 
 
 		// Some validation - just to make sure everything is okay
@@ -1138,30 +1548,33 @@ Futures = function(){
 		}
 
 		// determine if there are middleware callbacks registered
-		if(this.hasMiddleware()){ 
+		if(_hasMiddleware){ 
 			
 			// collapse all middleware callbacks into a single callback
 			compactedFunc = this.middlewares.concat(
-								resolver.bind(null, observers, this)
+								boundBaseDispatcher
 							).reduceRight(function(bound, middleware){
-					
-					return middleware.bind(null,
-						bound
-					);
-
-			});
+								return middleware.bind(null,
+									bound
+								);
+							});
 
 		}else {
 
-			compactedFunc = resolver.bind(null, observers, this);
+			compactedFunc = boundBaseDispatcher;
 		}
 
-		// Pass this on to the event queue [await]
+		// Pass this on to the event queue 
 		win.setTimeout(handlePromises, 0);
+
+		// begin cascading calls to the middlewares in turn
+		// from the last attached middleware all the way up
+		// to the first middleware until the action
+		// is finally dispatched
 
 		if(!isNullOrUndefined(compactedFunc)){
 
-			compactedFunc(action, getAppState());
+			compactedFunc.apply(_hasMiddleware ? adjoiner : null, [action, getAppState()]);
 
 		}
 
@@ -1178,7 +1591,7 @@ Futures = function(){
 			store = stores[title];
 			observer.$$store_listeners.length = 0;
 			observer.$$store_listeners = null;
-			observer.$$historyIndex = null;
+			observer.$$historyIndex = -1;
 			observer.$$history.length = 0;
 			observer.$$history = null;
 			
@@ -1291,6 +1704,7 @@ Futures = function(){
 				}
 
 				if(method == 'getState'){
+
 					var value;
 					area = new Area(this.getTitle());
 					value = area.get();
@@ -1308,7 +1722,7 @@ Futures = function(){
 
 				if(method == 'destroy'){
 
-					var title = this.getTitle(), index;
+					var title, index;
 
 					if(title in stores){
 						
@@ -1320,7 +1734,7 @@ Futures = function(){
 
 					area.del();
 
-					return (area = null);
+					return (area = title = null);
 				}
 
 				if(method == 'disconnect'){
@@ -1372,53 +1786,14 @@ Futures = function(){
 
 				if(method == 'undo'){
 
-					regFunc = dispatcher.getRegistration(this.getTitle());
-
-					area = new Area(this.getTitle());
-
-					if(this.canUndo()){
-						
-						--regFunc.$$historyIndex;
-
-						area.put(regFunc.$$history[regFunc.$$historyIndex]);
-
-						regFunc = null;
-
-						area = null;
-
-						return true;
-
-					}else{
-
-						return false;
-					}
-
-										
-					
+					return dispatcher.handleStoreMutation(this, method);
+											
 				}
 
 				if(method == 'redo'){
 
-					regFunc = dispatcher.getRegistration(this.getTitle());
+					return dispatcher.handleStoreMutation(this, method);
 
-					area = new Area(this.getTitle());
-
-					if(this.canRedo()){
-
-						++regFunc.$$historyIndex;
-
-						area.put(regFunc.$$history[regFunc.$$historyIndex]);
-
-						regFunc = null;
-
-						area = null;
-
-						return true;
-
-					}else{
-
-						return false;
-					}
 				}
 			}
 			
@@ -1465,9 +1840,80 @@ Futures = function(){
 			dispatcher.watch(callback);
 					
 		},
-		mergeConfig: function(cfg){
+		isAppStateAutoRehydrated:function(){
 
-		 	return _extend(cfg, _defaultConfig);
+			var dispatcher = this.getInstance();
+
+			return dispatcher.getAutoRehydrationState();
+		},
+		mergeConfig: function(cfg, hub){
+
+			var dispatcher = this.getInstance();
+
+		 	config = _extend(cfg, _defaultConfig);
+
+		 	if(config.universalCoverage){
+		 		config.persistenceEnabled = true;
+		 	}
+
+			if(!config.runtime.spaMode){
+				
+				if(typeof config.runtime.shutDownHref === 'string'
+					&& config.runtime.shutDownHref.length != 0){
+
+					wind.onbeforeunload = $createBeforeTearDownCallback(config);
+				
+					wind.onunload = $createTearDownCallback(hub);
+				}
+			}else{
+
+				if(typeof config.runtime.shutDownHref === 'string'
+					&& config.runtime.shutDownHref.length != 0){
+
+					if(win.addEventListener){
+						document.documentElement.addEventListener('click', $createBeforeTearDownCallback(config), false);
+						document.addEventListener('click', $createTearDownCallback(hub), false);
+					}else{
+						document.documentElement.attachEvent('onclick', $createBeforeTearDownCallback(config));
+						document.attachEvent('onclick', $createTearDownCallback(hub), false);
+					}
+				}
+			}
+
+			if(config.persistenceEnabled){
+
+				// prepare Origin 
+				var _origin = getAppOriginForPersist(config), 
+
+					_tag = generateTag(_origin);
+
+				persistStore.setItem(_origin, _tag);
+
+				enforceCoverage.$$origin = _origin;
+
+				enforceCoverage.$$tag = _tag;
+
+				coverageNotifier.$$canOmit = true;
+
+				coverageNotifier.$$tag = _tag;
+
+				hub.onDispatch(coverageNotifier);
+			}
+
+			dispatcher.initCatchers(config);
+
+		 	return config;
+		},
+		purgePersistStore:function(){
+
+			var _origin = getAppOriginForPersist(config);
+
+			var _tag = generateTag(_origin);
+
+			persistStore.removeItem(_origin);
+
+			persistStore.removeItem(_tag);
+
 		},
 		registerAction: function(){
 			/* creates hex value e.g. '0ef352ab287f1' */
@@ -1485,7 +1931,7 @@ Futures = function(){
 						/*
 						*/
 					}
-				}
+				};
 		},
 		setMiddlewareCallback: function(middlewareFunc){
 
@@ -1537,7 +1983,7 @@ function Hub(){
 
 		this.toString = function(){
 
-			return "[object Hub]";
+			return "[object RadixxHub]";
 		}
 
 		this.Helpers = {
@@ -1566,7 +2012,7 @@ function Hub(){
 				    }
 				  }
 			}
-		}
+		};
 
 		this.Payload = {
 			type:{
@@ -1574,9 +2020,14 @@ function Hub(){
 				 "date":"date",
 				 "string":"string",
 				 "regexp":"regexp",
+				 "boolean":"boolean",
 				 "function":"function",
 				 "object":"object",
 				 "number":"number",
+				 "error":function(value){
+
+				 		return (value instanceof Error || value instanceof TypeError);
+				 },
 				 "nullable":function(value){
 
 				 		return (value === null || value === undefined);
@@ -1594,9 +2045,9 @@ function Hub(){
 				 		return (value !== null || value !== undefined);	 			
 				 }
 			}
-		}
-}
+		};
 
+};
 
 Hub.prototype.constructor = Hub;
 
@@ -1609,7 +2060,13 @@ Hub.prototype.onShutdown = function(handler){
 
 };
 
+Hub.prototype.purgePersistentStorage = function(){
+
+	Observable.purgePersistStore();
+};
+
 /*Hub.prototype.onError = function(handler){
+
 
 };*/
 
@@ -1640,7 +2097,7 @@ Hub.prototype.makeActionCreators = function(vectors){
 		Action.apply(this, Slc.call(arguments));
 	}
 
-	var actionObject = new _action(Observable.registerAction());
+	var actionObject = new _action(Observable.registerAction()); // Observable.registerAction();
 
 	return Observable.setActionVectors(actionObject, vectors);
 };
@@ -1664,118 +2121,17 @@ Hub.prototype.attachMiddleware = function(callback){
 
 };
 
-var _radixx = new Hub(),
+Hub.prototype.isAppStateAutoRehydrated = function(){
 
-__hasDeactivated = false,
-	 
-$beforeunload = function(e) {
-										
-	       // push to event/UI queue (using `setTimeout`) to ensure execution
-	       // as beforeunload dialog blocks the JS thread waiting for
-	       // the user to either click button "Leave this Page" OR "Stay on Page" button
-	       // before any `setTimeout` function(s) are called 
-	       // (i.e any event/UI queue callbacks registered using `setTimeout`)
+	return Observable.isAppStateAutoRehydrated();
+}
 
-	       // If "Leave this Page" button is clicked, then the `unload` event fires
-	       // if not, the `unload` event doesn't fire at all
-		   
+Hub.prototype.configure = function(config){
 
-	       // See: https://greatgonzo.net/i-know-what-you-did-on-beforeunload/
-
-	       /* `lastActivatedNode` is used to track the DOM Node that last had focus (or was clicked) before the browser triggered the `beforeunload` event */
-
-	        var lastActivatedNode = (window.currentFocusElement // Mobile Browsers
-						|| e.originalEvent.explicitOriginalTarget // old/new Firefox
-						|| (e.originalEvent.srcDocument && e.originalEvent.srcDocument.activeElement) // old Chrome/Safari
-							|| (e.originalEvent.currentTarget && e.originalEvent.currentTarget.document.activeElement) // Sarafi/Chrome/Opera/IE
-									), 
-	       	 	leaveMessage = "Are you sure you want to leave this page ?", // if the "imaginary" user is logging out
-	       	 	isLogoff = (('href' in lastActivatedNode) && (lastActivatedNode.href.indexOf($beforeunload.$$href) > -1)),
-		       	__timeOutCallback = function(){
-		       			
-                    	// console.log('did user clicked the \'Leave Page\' button ?', (isLogoff ? 'Yes' : 'No'));                    
-
-			           	__hasDeactivated = __timeOutCallback.lock;
-
-		       	};
-
-				// console.log('Node: '+ lastActivatedNode);
-			
-		       	__timeOutCallback.lock = __hasDeactivated = true; 
-		       	beforeUnloadTimer = setTimeout(__timeOutCallback, 0);  
-
-		       	if(isLogoff){ // IE/Firefox/Chrome 34+
-
-		       		e.originalEvent.returnValue = leaveMessage; 
-		       	}
-	       
-       		 	/* if (isLogoff) isn't true, no beforeunload dialog is shown */
-	       		return ((isLogoff) ?  ((__timeOutCallback.lock = false) || leaveMessage) : clearTimeout(beforeUnloadTimer));
-	       
-},
-   
-$unload = function(e){
-
-		/*
-
-	   		This seems to be the best way to setup the `unload` event 
-	   		listener to ensure that the load event is always fired even if the page
-	   		is loaded from the `bfcache` (Back-Forward-Cache) of the browser whenever
-	   		the back and/or forward buttons are used for navigation instead of links.
-
-	   		Registering it as a property of the `window` object sure works every time
-		*/
-
-		if(!__hasDeactivated){
-
-			setTimeout(function(){
-
-				var appstate = {};
-			
-				_radixx.eachStore(function(store, next){
-
-					var title = store.getTitle();
-
-					appstate[title] = store.getState(); 
-				
-					store.disconnect();
-					store.destroy();
-
-					next();
-
-				});
-
-				_ping(appstate);
-
-				__unload(e);
-
-			}, 0);
-		}
+	Observable.mergeConfig(config, this);
 
 };
 
-_radixx.constructor.prototype.configure = function(config){
-
-	var cfg = Observable.mergeConfig(config);
-
-	if(!cfg.runtime.spaMode){
-		
-		if(typeof cfg.runtime.shutDownHref === 'string'
-			&& cfg.runtime.shutDownHref.length != 0){
-
-			$beforeunload.$$href = cfg.runtime.shutDownHref;
-			wind.onbeforeunload = $beforeunload;
-			wind.onunload = $unload;
-
-		}
-	}
-
-	if(cfg.persistenceEnabled){
-
-		_tag = '0x3674993769129020';
-	}
-};
-
-return _radixx;
+return new Hub();
 
 });

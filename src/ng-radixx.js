@@ -1,6 +1,6 @@
  /*!
   * @lib: ngRadixx
-  * @version: 0.1.0
+  * @version: 0.1.1
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -95,6 +95,16 @@
 						return $window.Radixx.onShutdown(func);
 
 				};
+
+				this.isAppStateAutoRehydrated = function(){
+
+						return $window.Radixx.isAppStateAutoRehydrated();
+				}
+
+				this.purgePersistentStorage = function(){
+
+					return $window.Radixx.purgePersistentStrorage();
+				}
 
 			}
 		}];
