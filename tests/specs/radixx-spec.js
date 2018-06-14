@@ -7,12 +7,7 @@
 describe("The Radixx Flux Library :", function() {
 
 			Radixx.configure({
-				runtime:{
-					spaMode:false
-				},
-				universalCoverage:true,
-				autoRehydrate:true,
-				localHostDev:true
+				
 			});
   
             var actions = Radixx.makeActionCreators({
