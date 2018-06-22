@@ -2,6 +2,8 @@
 
 [![]()]() [![Build Status](https://travis-ci.org/isocroft/Radixx.svg?branch=master)](https://travis-ci.org/isocroft/Radixx)
 
+[![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
+
 This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed, changed and updated. It resembles **Redux** in a lot of ways. The key deferentiator in both is that **Radixx** utilizes an _actions stack_ and **Redux** utilizes an immutable _state tree_. A single state tree can grow big really fast for a single store but an actions stack grows subtlely for a number of stores when dealing with complex single-page applications(SPAs). The actions stack allows **Radixx** to *<q>recalulate</q>* any state at anytime on demand. It is also how **Radixx** maintains it's _immutablility_.
 
 ## File Size 
@@ -466,7 +468,7 @@ These are methods defined on the global **Radixx** object
 
 - **Radixx.attachMiddleware(** _Function_ middlewareCallback **)** : _void_
 
-> Used to intercept actions that are dispatched by action creators to stores abd/or modify action data where necesssary before they reach the store.
+> Used to intercept actions that are dispatched by action creators to stores and/or modify action data where necesssary before they reach the store.
 
 - **Radixx.isAppStateAutoRehydrated(** _void_ **)** : _boolean_
 
@@ -580,7 +582,7 @@ These are methods defined on the global **Radixx** object
 
 ## Store APIs
 
-These are methods defined on the store object from **Radixx.createStore( ... )** call
+These are methods defined on the store object from **Radixx.makeStore( ... )** call
 
 - **store.hydrate(** _Array|Object_ initialStoreData **)**
 
@@ -657,6 +659,7 @@ These are methods defined on the store object from **Radixx.createStore( ... )**
 
 - Radixx would not maintain state across multiple tabs in a browser except the  **<q>universalCoverage</q>** config option is set to **true**.
 - Radixx throws an error if the **<q>runtimeMode</q>** config option
+- Always call the **Radixx.configure()** method before creating action creators and stores. If you don't want to change the default configuratio for **Radixx**, simply call **Radixx.configure({})**.
 - Radixx would not access the storage objects where necessary if it is placed in an iframe that has very tight _sandbox attribute_ restrictions or does not have the same scheme and domain as the parent window (same-origin policy restrictions) except a reverse proxy tactic or the [domain hack](http://qnimate.com/same-origin-policy-in-nutshell/) is used.
 
 
@@ -677,6 +680,8 @@ That being said, here is a round-up of what makes **Redux** a GREAT tool (for so
 - Infinte Undo/Redo + Live-Editing Time Travel (As application state is immutable).
 - Predictable Atomic Operation on Application state object (As actions are run in a specific predictable order).
 - Single source of truth (No Guesswork!!) for applicaton state.
+
+Same applies to Radixx
 
 # Troubles with Redux single store
 
@@ -702,6 +707,8 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 ```bash
 
+	$ npm install
+
 	$ npm run test
 ```
 
@@ -714,7 +721,7 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 ```js
 
-	var actions = Radixx.makeActioncreators({
+	var action_creators = Radixx.makeActioncreators({
 			'addStuff':{
 				type:'ADD_STUFF',
 				actionDefinition:Radixx.Payload.type.string
@@ -870,18 +877,10 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 						<button v-on:click="add" v-bind:disabled="buttonDisabled" v-bind:title="gender">ADD</button>
 					</div>`,
 			computed:{
-				componentState:{
-					get:function(){
+				componentState:function(){
 
-							return store.getState();
-						
-					},
-					set:function(state){
-
-						// use this to update your UI state via data ONLY 
-						let flname = state.profile.fullName;
-
-					}
+					return store.getState();
+					
 				}
 			},
 			watch:{
@@ -915,7 +914,7 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 					*/
 
-					actions.addStuff(this.firstName, 'profile');
+					action_creators.addStuff(this.firstName, 'profile');
 				}
 			}
 	});
