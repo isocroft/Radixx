@@ -25,14 +25,19 @@
 
  !function(root, factory){
 	 'use strict';
-  if(typeof exports === 'object' && typeof module === 'object')
-    module.exports = factory(root);
-  else if(typeof define === 'function' && define.amd)
+  if(typeof exports === 'object' && typeof module === 'object'){
+    module.exports = {
+	    "Radixx": factory(root)
+    };
+    exports.__esModule = true;
+  }else if(typeof define === 'function' && define.amd){
     define("Radixx", [], function(){ return factory(root); });
-  else if(typeof exports === 'object')
+  }else if(typeof exports === 'object'){
     exports["Radixx"] = factory(root);
-  else
+    exports.__esModule = true;
+  }else{
     root["Radixx"] = factory(root);
+  }
 
  }(typeof window !== "undefined" ? window : this, function(wind, undefined){ 
 
