@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.1.1
+  * @version: 0.1.2
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -11,23 +11,32 @@
   * @desc: Implementation of Facebooks' Flux Architecture with a Twist.
   */
 
+ /**
+  *
+  * When using with TypeScript in the `tsconfig`
+  *
+  *	{
+    		"compilerOptions": {
+        		"module": "es2015",
+        		"allowSyntheticDefaultImports": true
+    		}
+	}
+  */
+
  !function(root, factory){
+	 'use strict';
+  if(typeof exports === 'object' && typeof module === 'object')
+    module.exports = factory(root);
+  else if(typeof define === 'function' && define.amd)
+    define("Radixx", [], function(){ return factory(root); });
+  else if(typeof exports === 'object')
+    exports["Radixx"] = factory(root);
+  else
+    root["Radixx"] = factory(root);
 
- 	if(typeof module != "undefined" && !!(module.exports)){
- 		if(root != void 0){
- 			module.exports = factory(root);
- 		}else{
- 			module.exports = factory({});
- 		}
- 	}else if(typeof define != "undefined" && !!(define.amd)){
- 		define("Radixx", function(){ return factory(root); });
- 	}else{
- 		root['Radixx'] = factory(root);
- 	}
+ }(typeof window !== "undefined" ? window : this, function(wind, undefined){ 
 
- }(this, function(wind, undefined){ 
-
-// 'use strict';  Can't [use strict] mode cos i wish to use {void 0} to check nulled/undefined vars	
+// 'use strict';  Can't [use strict] mode cos i wish to use {void 0}/{arguments.callee} for checks	
 
 var Hop = ({}).hasOwnProperty,
 
@@ -2132,6 +2141,6 @@ Hub.prototype.configure = function(config){
 
 };
 
-return new Hub();
+return (new Hub());
 
 });
