@@ -100,4 +100,4 @@ suite
     
      console.log(String(event.target));
   })
-  .run();
+  .run({ 'async': true });
