@@ -27,7 +27,7 @@
 	 'use strict';
   if(typeof exports === 'object' && typeof module === 'object'){
     module.exports =  factory(root);
-    exports.__esModule = true;
+    module.exports.__esModule = true;
   }else if(typeof define === 'function' && define.amd){
     define("Radixx", [], function(){ return factory(root); });
   }else if(typeof exports === 'object'){
