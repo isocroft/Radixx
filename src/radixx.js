@@ -26,9 +26,7 @@
  !function(root, factory){
 	 'use strict';
   if(typeof exports === 'object' && typeof module === 'object'){
-    module.exports = {
-	    "Radixx": factory(root)
-    };
+    module.exports =  factory(root);
     exports.__esModule = true;
   }else if(typeof define === 'function' && define.amd){
     define("Radixx", [], function(){ return factory(root); });
