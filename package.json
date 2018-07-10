@@ -45,12 +45,14 @@
     "node": ">= 0.10.25"
   },
   "main": "src/radixx.js",
+  "module":"src/radixx.es2015.js",
+  "es2015":"src/radixx.es2015.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
   },
   "files": [
-    "tests",
+    "dist/*.js",
     "example",
     "src/*.js",
     "*.md"
