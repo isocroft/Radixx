@@ -25,19 +25,21 @@
 
  !function(root, factory){
 	 'use strict';
+	 
   if(typeof exports === 'object' && typeof module === 'object'){
     module.exports =  factory(root);
-    module.exports.__esModule = true;
   }else if(typeof define === 'function' && define.amd){
     define("Radixx", [], function(){ return factory(root); });
   }else if(typeof exports === 'object'){
     exports["Radixx"] = factory(root);
-    exports.__esModule = true;
   }else{
     root["Radixx"] = factory(root);
   }
 
- }(typeof window !== "undefined" ? window : this, function(wind, undefined){ 
+ }((('undefined' !== typeof process &&
+    '[object process]' === {}.toString.call(process)) ||
+  ('undefined' !== typeof navigator && navigator.product === 'ReactNative')
+? global : (typeof window !== "undefined" ? window : self)), function(wind, undefined){ 
 
 // 'use strict';  Can't [use strict] mode cos i wish to use {void 0}/{arguments.callee} for checks	
 
