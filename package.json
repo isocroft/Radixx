@@ -6,11 +6,13 @@
     "Flux",
     "Event Source",
     "Actions",
+    "State",
+    "Redux Like",
     "Action Creators"
   ],
   "scripts": {
     "lint": "jshint src tests",
-    "benchmark": "- benchmark.js",
+    "benchmark": "node benchmark.js",
     "test": "karma start radixx.conf.js --single-run"
   },
   "authors": [
@@ -47,6 +49,7 @@
   "main": "src/radixx.js",
   "unpkg": "dist/radixx.min.js",
   "module":"src/radixx.es2015.js",
+  "jsnext:main": "src/radixx.es2015.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
