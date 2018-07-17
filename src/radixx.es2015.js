@@ -1188,11 +1188,13 @@ const Observable = ((win => {
 
         initCatchers(config) {
 
-                if(config.autoRehydrate){
+                if(config.autoRehydrate === true){
+		    let data = null;
                     if(!isNullOrUndefined(enforceCoverage.$$tag) 
-                        && persistStore)
-                    const data = getNormalized(persistStore.getItem(enforceCoverage.$$tag));
-                    if(data instanceof Object 
+                        && persistStore){
+                    	data = getNormalized(persistStore.getItem(enforceCoverage.$$tag));
+		    }
+		    if(data instanceof Object 
                             && data.state){
                         setAppState(data.state);
                         this.updateAutoRehydrationState();
