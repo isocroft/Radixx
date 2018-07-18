@@ -7,6 +7,8 @@
     "Event Source",
     "Actions",
     "State",
+    "Store",
+    "Actions",
     "Redux Like",
     "Action Creators"
   ],
@@ -48,8 +50,9 @@
   },
   "main": "src/radixx.js",
   "unpkg": "dist/radixx.min.js",
-  "module":"src/radixx.es2015.js",
-  "jsnext:main": "src/radixx.es2015.js",
+  "module":"src/radixx.module.js",
+  "jsnext:main": "src/radixx.module.js",
+  "es2015": "src/radixx.es2015.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
