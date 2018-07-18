@@ -37,9 +37,9 @@
   }
 
  }((('undefined' !== typeof process &&
-    '[object process]' === {}.toString.call(process)) ||
+    '[object process]' === ({}).toString.call(process)) ||
   ('undefined' !== typeof navigator && navigator.product === 'ReactNative')
-? global : (typeof window !== "undefined" ? window : self)), function(wind, undefined){ 
+? global : typeof window !== "undefined" ? window : self), function(wind, undefined){ 
 
 // 'use strict';  Can't [use strict] mode cos i wish to use {void 0}/{arguments.callee} for checks	
 
