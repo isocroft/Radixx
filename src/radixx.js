@@ -742,7 +742,7 @@ Futures = function(){
 
 	},
 
-		storeKeys = [
+	    storeKeys = [
 
 	],
 
@@ -915,7 +915,7 @@ Futures = function(){
 		return String(Math.random()).replace('.','x_').substring(0, 11);
 	},
 	  
-    getNormalized = function(val){
+    	getNormalized = function(val){
 
 	   	if(isNullOrUndefined(val) || val === "null")
 	   		 return null;
@@ -952,7 +952,7 @@ Futures = function(){
 		fireWatchers(appState, true);
 	},
 	   
-    getAppState = function(){
+    	getAppState = function(){
 
 		var appStateData = {}, key, indexStart, indexEnd, values, _data;		
 		
@@ -996,7 +996,7 @@ Futures = function(){
 		return appStateData;
 	},
 	   
-    Area = function(key){
+    	Area = function(key){
 
 		this.put = function(value){
 			
@@ -1063,18 +1063,25 @@ Futures = function(){
 			
 			/* This is a fallback to support Opera Mini 4.4+ on Mobile */
 			
-			if(cachedStorageKeys[key]){
-
-				indexStart = win.name.indexOf(key);
-
-				indexEnd = win.name.indexOf('|', indexStart);
-
-				values = (win.name.substring(indexStart, indexEnd)).split(':=:') || [0, 0];
-
-				return getNormalized(values[1]) || null;
-			}else{
-
+			try{
+			
 				return getNormalized(sessStore.getItem(key)) || null;
+				
+			}catch(e){
+			
+				if(cachedStorageKeys[key]){
+
+					indexStart = win.name.indexOf(key);
+
+					indexEnd = win.name.indexOf('|', indexStart);
+
+					values = (win.name.substring(indexStart, indexEnd)).split(':=:') || [0, 0];
+
+					return getNormalized(values[1]) || null;
+				}
+				
+				return null;
+				
 			}
 		};
 
@@ -1082,19 +1089,28 @@ Futures = function(){
 
 				var indexStart, 
 				indexEnd;
+			
 				/* This is a fallback to support Opera Mini 4.4+ on Mobile */
 			
-				if(cachedStorageKeys[key]){
-					
-					// we're in delete mode
-					indexStart = win.name.indexOf(key);
-					
-					indexEnd = win.name.indexOf('|', indexStart);
-
-					win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
-				}else{
+				try{
 					
 					return sessStore.removeItem(key);
+					
+				}catch(e){
+			
+					if(cachedStorageKeys[key]){
+
+						// we're in delete mode
+						indexStart = win.name.indexOf(key);
+
+						indexEnd = win.name.indexOf('|', indexStart);
+
+						win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
+						
+						delete cachedStorageKeys[key];
+					}
+					
+					return;
 				}
 		};
 
