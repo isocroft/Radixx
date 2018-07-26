@@ -3,7 +3,10 @@
 
 const Hop = ({}).hasOwnProperty;
 
-const wind = window || this;
+const wind = (('undefined' !== typeof process &&
+    '[object process]' === ({}).toString.call(process)) ||
+  ('undefined' !== typeof navigator && navigator.product === 'ReactNative')
+? global : typeof window !== "undefined" ? window : self);
 const __beforeunload = wind.onbeforeunload;
 const __unload = wind.onunload;
 let __hasDeactivated = false;
@@ -903,25 +906,27 @@ const Observable = ((win => {
     const Area = function(key){
 
 		this.put = value => {
-            /* 
+            
+			/* 
 				In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
 				we need to fix this by using IE proprietary methods 
 				See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
 			*/
 
-            let indexStart;
+            		let indexStart;
 
-            let indexEnd;
-            const isIE8Storage = ('remainingSpace' in sessStore) && (mode === 8);
+            		let indexEnd;
+			
+            		const isIE8Storage = ('remainingSpace' in sessStore) && (mode === 8);
 
-            // Detecting IE 8 to enable forced sync
-            if(isIE8Storage){
+            		// Detecting IE 8 to enable forced sync
+			if(isIE8Storage){
 				if(typeof sessStore.begin == 'function'){
 					sessStore.begin();
 				}
 			}
 
-            try{
+            		try{
 
 				sessStore.setItem(key, setNormalized(value));
 				
@@ -951,7 +956,7 @@ const Observable = ((win => {
 				cachedStorageKeys[key] = 1;
 			}
 
-            if(isIE8Storage){
+            		if(isIE8Storage){
 				if(typeof sessStore.commit == 'function'){
 					sessStore.commit();
 				}
@@ -966,18 +971,25 @@ const Observable = ((win => {
 			
 			/* This is a fallback to support Opera Mini 4.4+ on Mobile */
 			
-			if(cachedStorageKeys[key]){
-
-				indexStart = win.name.indexOf(key);
-
-				indexEnd = win.name.indexOf('|', indexStart);
-
-				values = (win.name.substring(indexStart, indexEnd)).split(':=:') || [0, 0];
-
-				return getNormalized(values[1]) || null;
-			}else{
-
+			try{
+			
 				return getNormalized(sessStore.getItem(key)) || null;
+				
+			}catch(e){
+			
+				if(cachedStorageKeys[key]){
+
+					indexStart = win.name.indexOf(key);
+
+					indexEnd = win.name.indexOf('|', indexStart);
+
+					values = (win.name.substring(indexStart, indexEnd)).split(':=:') || [0, 0];
+
+					return getNormalized(values[1]) || null;
+				}
+				
+				return null;
+				
 			}
 		};
 
@@ -986,17 +998,25 @@ const Observable = ((win => {
 				let indexStart, indexEnd;
 				/* This is a fallback to support Opera Mini 4.4+ on Mobile */
 			
-				if(cachedStorageKeys[key]){
-					
-					// we're in delete mode
-					indexStart = win.name.indexOf(key);
-					
-					indexEnd = win.name.indexOf('|', indexStart);
-
-					win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
-				}else{
+				try{
 					
 					return sessStore.removeItem(key);
+					
+				}catch(e){
+			
+					if(cachedStorageKeys[key]){
+
+						// we're in delete mode
+						indexStart = win.name.indexOf(key);
+
+						indexEnd = win.name.indexOf('|', indexStart);
+
+						win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
+						
+						delete cachedStorageKeys[key];
+					}
+					
+					return;
 				}
 		};
 
@@ -1015,7 +1035,9 @@ const Observable = ((win => {
 	};
 
     const coverageNotifier = function(appState){
+	    
         let currentAction = null;
+	    
         const _tag = coverageNotifier.$$tag;
 
         if(arguments.callee.$$withAction === true){
@@ -1035,9 +1057,9 @@ const Observable = ((win => {
 
 			arguments.callee.$$historyLocation = null;
 		}
-    };
+    },
 
-    const fireWatchers = (state, omitCallback) => {
+   fireWatchers = (state, omitCallback) => {
 
 		let pos, watcher;
 
@@ -1052,7 +1074,7 @@ const Observable = ((win => {
 				watcher.call(null, state);
 			}
 		}
-	};
+	},
 
     handlePromises = () => {
         let promise = null;
@@ -1707,14 +1729,29 @@ const Observable = ((win => {
 				 // console.log('OUTER-FUNC: ', this.constructor.caller);
 
 				const id = this.getId();
+				
+				let typesBitMask = 0;
 
 				if(!isNullOrUndefined(dispatchRegistry[id])){
 					dispatchRegistry[id].actionTypes.push(
 						vector
 					);
 				}
-
-				if(vector.actionDefinition){
+				
+				if(vector.actionDefinition instanceof Array){
+					
+					_each(vector.actionDefinition, function(definition){
+					
+						typesBitMask |= Number(Values.isOfType(definition, data));
+	
+					});
+					
+					if(!typesBitMask){
+					   
+						throw new TypeError(`Action Data Invalid for action: [${vector.type}]`);
+				   	}
+				
+				}else{
 					if(!Values.isOfType(vector.actionDefinition, data)){
 						
 						throw new TypeError(`Action Data Invalid for action: [${vector.type}]`);
