@@ -18,7 +18,7 @@ function _newArrowCheck(innerThis, boundThis) { if (innerThis !== boundThis) { t
 
 var Hop = {}.hasOwnProperty;
 
-var wind = window || undefined;
+var wind = 'undefined' !== typeof process && '[object process]' === {}.toString.call(process) || 'undefined' !== typeof navigator && navigator.product === 'ReactNative' ? global : typeof window !== "undefined" ? window : self;
 var __beforeunload = wind.onbeforeunload;
 var __unload = wind.onunload;
 var __hasDeactivated = false;
@@ -1006,14 +1006,15 @@ var Observable = function (win) {
             _newArrowCheck(this, _this7);
 
             /* 
-            In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
-            we need to fix this by using IE proprietary methods 
-            See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
+            	In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
+            	we need to fix this by using IE proprietary methods 
+            	See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
             */
 
             var indexStart = void 0;
 
             var indexEnd = void 0;
+
             var isIE8Storage = 'remainingSpace' in sessStore && mode === 8;
 
             // Detecting IE 8 to enable forced sync
@@ -1068,18 +1069,23 @@ var Observable = function (win) {
 
             /* This is a fallback to support Opera Mini 4.4+ on Mobile */
 
-            if (cachedStorageKeys[key]) {
-
-                indexStart = win.name.indexOf(key);
-
-                indexEnd = win.name.indexOf('|', indexStart);
-
-                values = win.name.substring(indexStart, indexEnd).split(':=:') || [0, 0];
-
-                return getNormalized(values[1]) || null;
-            } else {
+            try {
 
                 return getNormalized(sessStore.getItem(key)) || null;
+            } catch (e) {
+
+                if (cachedStorageKeys[key]) {
+
+                    indexStart = win.name.indexOf(key);
+
+                    indexEnd = win.name.indexOf('|', indexStart);
+
+                    values = win.name.substring(indexStart, indexEnd).split(':=:') || [0, 0];
+
+                    return getNormalized(values[1]) || null;
+                }
+
+                return null;
             }
         }.bind(this);
 
@@ -1090,17 +1096,24 @@ var Observable = function (win) {
                 indexEnd = void 0;
             /* This is a fallback to support Opera Mini 4.4+ on Mobile */
 
-            if (cachedStorageKeys[key]) {
-
-                // we're in delete mode
-                indexStart = win.name.indexOf(key);
-
-                indexEnd = win.name.indexOf('|', indexStart);
-
-                win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
-            } else {
+            try {
 
                 return sessStore.removeItem(key);
+            } catch (e) {
+
+                if (cachedStorageKeys[key]) {
+
+                    // we're in delete mode
+                    indexStart = win.name.indexOf(key);
+
+                    indexEnd = win.name.indexOf('|', indexStart);
+
+                    win.name = win.name.replace(win.name.substring(indexStart, indexEnd), '');
+
+                    delete cachedStorageKeys[key];
+                }
+
+                return;
             }
         }.bind(this);
 
@@ -1120,7 +1133,9 @@ var Observable = function (win) {
     }.bind(undefined);
 
     var coverageNotifier = function coverageNotifier(appState) {
+
         var currentAction = null;
+
         var _tag = coverageNotifier.$$tag;
 
         if (arguments.callee.$$withAction === true) {
@@ -1139,9 +1154,8 @@ var Observable = function (win) {
 
             arguments.callee.$$historyLocation = null;
         }
-    };
-
-    var fireWatchers = function (state, omitCallback) {
+    },
+        fireWatchers = function (state, omitCallback) {
         _newArrowCheck(undefined, undefined);
 
         var pos = void 0,
@@ -1158,9 +1172,8 @@ var Observable = function (win) {
                 watcher.call(null, state);
             }
         }
-    }.bind(undefined);
-
-    handlePromises = function () {
+    }.bind(undefined),
+        handlePromises = function () {
         _newArrowCheck(undefined, undefined);
 
         var promise = null;
@@ -1179,7 +1192,8 @@ var Observable = function (win) {
         waitQueue.length = 0;
 
         fireWatchers(state);
-    }.bind(undefined), enforceCoverage = function enforceCoverage(e) {
+    }.bind(undefined),
+        enforceCoverage = function enforceCoverage(e) {
         var _origin = arguments.callee.$$origin;
         var _tag = arguments.callee.$$tag;
         var _action = null;
@@ -1230,7 +1244,8 @@ var Observable = function (win) {
         if (_state) {
             setTimeout(setAppState.bind(null, _state), 0);
         }
-    }, stateWatcher = function (e) {
+    },
+        stateWatcher = function (e) {
         _newArrowCheck(undefined, undefined);
 
         e = e || win.event;
@@ -1796,11 +1811,24 @@ var Observable = function (win) {
 
                 var id = this.getId();
 
+                var typesBitMask = 0;
+
                 if (!isNullOrUndefined(dispatchRegistry[id])) {
                     dispatchRegistry[id].actionTypes.push(vector);
                 }
 
-                if (vector.actionDefinition) {
+                if (vector.actionDefinition instanceof Array) {
+
+                    _each(vector.actionDefinition, function (definition) {
+
+                        typesBitMask |= Number(Values.isOfType(definition, data));
+                    });
+
+                    if (!typesBitMask) {
+
+                        throw new TypeError('Action Data Invalid for action: [' + String(vector.type) + ']');
+                    }
+                } else {
                     if (!Values.isOfType(vector.actionDefinition, data)) {
 
                         throw new TypeError('Action Data Invalid for action: [' + String(vector.type) + ']');
