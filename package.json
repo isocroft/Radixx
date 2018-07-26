@@ -59,7 +59,6 @@
   },
   "files": [
     "dist/*.js",
-    "example",
     "src/*.js",
     "*.md"
   ]
