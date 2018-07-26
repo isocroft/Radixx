@@ -1,8 +1,6 @@
 # Radixx
 
-[![]()]() [![Build Status](https://travis-ci.org/isocroft/Radixx.svg?branch=master)](https://travis-ci.org/isocroft/Radixx)
-
-[![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria)
+[![]()]() [![Build Status](https://travis-ci.org/isocroft/Radixx.svg?branch=master)](https://travis-ci.org/isocroft/Radixx) [![Node version](https://img.shields.io/node/v/radixx.svg?style=flat)](http://nodejs.org/download/) [![contributions welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg?style=flat)](https://github.com/isocroft/Radixx/issues) [![Made in Nigeria](https://img.shields.io/badge/made%20in-nigeria-008751.svg?style=flat-square)](https://github.com/acekyd/made-in-nigeria) [![Join the chat at https://gitter.im/isocroft/Radixx](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/dwyl/?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed, changed and updated. It resembles **Redux** in a lot of ways. The key deferentiator in both is that **Radixx** utilizes an _actions stack_ and **Redux** utilizes an immutable _state tree_. A single state tree can grow big really fast for a single store but an actions stack grows subtlely for a number of stores when dealing with complex single-page applications(SPAs). The actions stack allows **Radixx** to *<q>recalulate</q>* any state at anytime on demand. It is also how **Radixx** maintains it's _immutablility_.
 
@@ -10,8 +8,8 @@ This is a simple Javascript library that implements the **Facebook Flux Architec
 
 The footprint for **Radixx** is really small. With all it's functionality, it's just 19KB when minified!
 
-- 46.8 KB (Current Version - Unminified)
-- 18.9 KB (Current Version - Minified)
+- 48.5 KB (Current Version - Unminified)
+- 19.3 KB (Current Version - Minified)
 
 <img src="radixx.png"></img>
 
@@ -36,8 +34,10 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 <html id="demo_app">
 <head>
 	<title>Radixx (Vanilla JS) - Example App</title>
-	<!-- relative paths apply -->
-	<script src="node_modules/radixx/dist/radixx.min.js"></script>
+	<!-- relative path (NodeJS) -->
+	<script type="text/javascript" src="node_modules/radixx/dist/radixx.min.js"></script>
+	<!-- absolute path (Unpkg) -->
+	<script type="text/javascript" src="https://unpkg.com/radixx@0.1.2/dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
 
