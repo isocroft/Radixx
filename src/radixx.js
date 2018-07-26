@@ -192,7 +192,7 @@ Values = {
             "string":String,
             "boolean":Boolean,
             "date":Date,
-	    	"regexp":RegExp,	
+	    "regexp":RegExp,	
             "function":Function
 	},
 	isOfType:function(type, value){
@@ -1167,7 +1167,7 @@ Futures = function(){
 				watcher.call(null, state);
 			}
 		}
-	}
+	},
 
 	handlePromises = function(){
 
@@ -1427,7 +1427,7 @@ Futures = function(){
 
 		regFunc.$$history.length = 0; // clear out the store state since this is a hydrate call
 
-    	regFunc.historyIndex = -1;
+    		regFunc.historyIndex = -1;
 
 		operationOnStoreSignal.apply(
 			null, 
@@ -1509,7 +1509,7 @@ Futures = function(){
 
 		_each(actionsStack, function(action, index){
 
-			var stateArea;
+			var stateArea, title;
 
 			for(title in observers){
 				if(Hop.call(observers, title)){
@@ -1832,22 +1832,35 @@ Futures = function(){
 			
 			if(!(vector instanceof Object)){
 
-				throw new TypeError("Invalid Action Creator Vector, expected [object] but found ["+	typeof(vector) +"]");
+				throw new TypeError("Invalid Action Creator Vector, expected [object] but found ["+typeof(vector) +"]");
 			}
 
 			return function(data, stateAspectKey){
 
 				 // console.log('OUTER-FUNC: ', this.constructor.caller);
 
-				var id = this.getId();
+				var id = this.getId(), typesBitMask = 0;
 
 				if(!isNullOrUndefined(dispatchRegistry[id])){
 					dispatchRegistry[id].actionTypes.push(
 						vector
 					);
 				}
-
-				if(vector.actionDefinition){
+				
+				if(vector.actionDefinition instanceof Array){
+					
+					_each(vector.actionDefinition, function(definition){
+					
+						typesBitMask |= Number(Values.isOfType(definition, data));
+	
+					});
+					
+					if(!typesBitMask){
+					   
+						throw new TypeError("Action Data Invalid for action: ["+vector.type+"]");
+				   	}
+				
+				}else{
 					if(!Values.isOfType(vector.actionDefinition, data)){
 						
 						throw new TypeError("Action Data Invalid for action: ["+vector.type+"]");
@@ -1967,7 +1980,7 @@ Futures = function(){
 
 			var dispatcher = this.getInstance();
 
-			// HERE: using this try/catch for control flow and not defensive programming
+			// HERE: using this try/catch for control flow and not a defensive code setup
 			try{
 
 				dispatcher.getMiddleware();
