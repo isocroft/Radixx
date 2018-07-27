@@ -11,7 +11,7 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 - define **Radixx.onError(function: fn)** as part of _Radixx_ APIs as seen below:
 
->As at the current version of **Radixx** (i.e. - v0.1.0). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
+>As at the next version of **Radixx** (i.e. - v0.1.3). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
 
 ```js
 
@@ -25,7 +25,7 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 				console.error("MyApp: [Radixx] ", errorObject.message, errorObject, callStack);
 			break;
 
-			case "RadixxMiddlewareError":
+			case "RadixxProcessError":
 				console.warn("MyApp: [Radixx] ", errorObject.context, errorObject.message, callStack);
 			break;
 
@@ -43,8 +43,6 @@ I'm very excited to see that you have decided (or planning to decide) to join in
 
 - Build and Integrate support for GraphQL (if possible build in a small and efficient GraphQL client as part of Radixx) in an easy way
 
-- Add _bower_ and _yarn_ package manager support
-
 
 ## Code Of Conduct
 
@@ -52,3 +50,5 @@ Please, be informed that open-source projects are for sharing and learning as we
 
 - Before you log any issue, please search through the already logged issues to see if the issue has been log hitherto.
 - That in the course of contrbuting ideas, addtional features (code) or bug fixes, you do so with mutual respect and decorum.
+- You should not use foul, insensitive and/or offensive language in communicating on the issue tracker/board.
+- Mansplaining is completely prohibited on the issue tracker/board and on gitter. Everyone should endeavour to keep things gender-neutral
