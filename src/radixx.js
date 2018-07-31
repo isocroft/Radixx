@@ -26,7 +26,7 @@
  !function(root, factory){
 	 'use strict';
 	 
-  if(typeof exports === 'object' && typeof module === 'object'){
+  if(typeof exports === 'object' && typeof module !== 'undefined'){
     module.exports =  factory(root);
   }else if(typeof define === 'function' && define.amd){
     define("Radixx", [], function(){ return factory(root); });
