@@ -48,7 +48,7 @@
   "engines": {
     "node": ">= 0.10.25"
   },
-  "main": "src/radixx.js",
+  "main": "src/radixx.module.js",
   "browser": "dist/radixx.min.js",
   "module":"src/radixx.module.js",
   "jsnext:main": "src/radixx.module.js",
