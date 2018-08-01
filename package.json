@@ -32,6 +32,7 @@
     "url": "git+https://github.com/isocroft/Radixx"
   },
   "homepage": "https://github.com/isocroft/Radixx",
+  "sideEffects": false,
   "devDependencies": {
     "jshint": "^2.9.4",
     "uglifyjs": "^2.4.10",
@@ -46,13 +47,14 @@
   },
   "dependencies": {},
   "engines": {
-    "node": ">= 0.10.25"
+    "node": ">= 8.5.0"
   },
-  "main": "src/radixx.module.js",
+  "main": "src/radixx.js",
   "browser": "dist/radixx.min.js",
-  "module":"src/radixx.module.js",
+  "module":"src/radixx.es2015.js",
+  "unpkg": "dist/radixx.min.js",
+  "jsdelivr": "dist/radixx.min.js",
   "jsnext:main": "src/radixx.module.js",
-  "es2015": "src/radixx.es2015.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
