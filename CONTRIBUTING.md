@@ -13,7 +13,7 @@ whether or not your feature is likely to be used by other users of the project.
 Before filing an issue:
 
 - Attempt to replicate the problem, to ensure that it wasn't a coincidental or isolated incident.
-- Check to make sure your feature suggestion isn't already present within the project.
+- Check to make sure your feature suggestion or bug notification isn't already present within the project.
 - Check/Filter Through all pull requests to ensure that the bug doesn't have a fix in progress.
 - Check/Filter Through all pull requests to ensure that the feature isn't already in progress.
 
@@ -28,7 +28,7 @@ Before submitting a pull request:
 
 - define **Radixx.onError(function: fn)** as part of _Radixx_ APIs as seen below:
 
->As at the next version of **Radixx** (i.e. - v0.1.4). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
+>As at the upper version of **Radixx** (i.e. - v0.1.4). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
 
 ```js
 
@@ -64,7 +64,7 @@ Before submitting a pull request:
 
 If the project maintainer has any additional requirements, you will find them listed here.
 
-- **Add tests!** - Your patch won't be accepted if it doesn't have tests.
+- **Add tests!** - Your patch won't be accepted if it doesn't have tests. Please make use the _tests_ folder to include your **tests**.
 
 - **Document any change in behaviour** - Make sure the `README.md` and any other relevant documentation are kept up-to-date.
 
@@ -76,9 +76,8 @@ If the project maintainer has any additional requirements, you will find them li
 
 ## Code Of Conduct
 
-Please, be informed that open-source projects are for sharing and learning as well as helping others out with solving pertinent developer issues or challenges. By deciding to contribute to Radixx via PRs or Code Requests or Documentation Updates you also agree to be bound by the Code Of Conduct
+Please, be informed that open-source projects are for sharing and learning as well as helping others out with solving pertinent developer issues or challenges. By deciding to contribute to Radixx via PRs or Code Requests or Documentation Updates you also agree to be bound by the Code Of Conduct.
 
-- Before you log any issue, please search through the already logged issues to see if the issue has been log hitherto.
 - That in the course of contrbuting ideas, addtional features (code) or bug fixes, you do so with mutual respect and decorum.
 - You should not use foul, insensitive and/or offensive language in communicating on the issue tracker/board.
 - Mansplaining is completely prohibited on the issue tracker/board and on gitter. Everyone should endeavour to keep things gender-neutral.
