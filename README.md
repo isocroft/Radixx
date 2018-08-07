@@ -13,20 +13,23 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 
 <img src="radixx.png"></img>
 
-## How to Use - 2 steps
+## How to Use - < 2 steps >
 
-- First, download/install it from **NPM**
+- First, download/install it from **NPM** or **Yarn**
 
-[NPM][npm-url]
-   
-[Download][downloads-url]
+[NPM][npm-url] [Download][downloads-url]
 
 ```bash
 
 	$ npm install radixx --save
 ```
 
-- Next, use it in your JavaScript application like so 
+```bash
+
+	$ yarn add radixx
+```
+
+- Next, use it in your JavaScript application like so: 
 
 ```html
 
@@ -34,9 +37,9 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 <html id="demo_app">
 <head>
 	<title>Radixx (Vanilla JS) - Example App</title>
-	<!-- relative path (NodeJS) -->
-	<script type="text/javascript" src="node_modules/radixx/dist/radixx.min.js"></script>
-	<!-- absolute path (Unpkg) -->
+	<!-- relative path (NodeJS)
+	<script type="text/javascript" src="node_modules/radixx/dist/radixx.min.js"></script> -->
+	<!-- absolute path (Unpkg) via CDN -->
 	<script type="text/javascript" src="https://unpkg.com/radixx@0.1.2/dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
@@ -721,7 +724,7 @@ This project uses **Jasmine** for tests and runs them on the command line with *
 
 ```js
 
-	var action_creators = Radixx.makeActioncreators({
+	var action_creators = Radixx.makeActionCreators({
 			'addStuff':{
 				type:'ADD_STUFF',
 				actionDefinition:Radixx.Payload.type.string
@@ -1218,6 +1221,13 @@ angular.module("appy.todos", [
 ```
 >ReactJS 
 
+```html
+
+	<script type="text/javascript" src="https://unpkg.com/react@0.13.1/dist/react-with-addons.js"></script>
+
+	<script type="text/javascript" src="https://unpkg.com/react@0.13.1/dist/JSXTransformer.js"></script>
+```
+
 ```js
 	
 	/* ====================  */
@@ -1253,7 +1263,7 @@ angular.module("appy.todos", [
 
  	/* ===================== */ 
 
-
+	/* The code belwo uses ReactJS v0.13.1 - */
 
 	// Asuuming to use socket.io (client-side)
 	var socket = io.connect(
@@ -1419,6 +1429,8 @@ angular.module("appy.todos", [
 	/* PRESENTATION COMPONENT */
 
 	// defined with most lifecycle hooks
+	
+	/** @jsx React.DOM */
 
 	var ShoeComponent = React.createClass({
 			propTypes:{
@@ -1501,6 +1513,8 @@ angular.module("appy.todos", [
 	/* CONTAINER COMPONENT */
 
 	// defined with no lifecycle hooks
+	
+	/** @jsx React.DOM */
 
 	var ListingsContainer = React.createClass({
 			mixins:[ContainerTrait],
@@ -1603,77 +1617,14 @@ angular.module("appy.todos", [
 	
 ```
 
->RactiveJS
-
-```js
-
-	var actions = Radixx.makeActionCreators({
-							'addItem':{
-								type:'ADD_ITEM',
-								actionDefinition:Radixx.Payload.type.object
-							},
-							'loadItem':{
-								type:'LOAD_ITEM',
-								actionDefinition:Radixx.Payload.type.array
-							}
-	});
-
-	var store = Radixx.makeStore('shoes', function(action, state){
-					var item = state; 
-					switch(action.actionType){
-						case 'ADD_ITEM':
-							item.push(action.actionData);
-						break;
-						case 'LOAD_ITEM':
-							item = action.actionData;
-						break;
-					}
-					
-					return item;
-	}, []);
-	
-	var shoesComponent = Ractive.extend({
-	
-  		template: '#tpl-app', /* id of {SCRIPT element} used to hold HTML view */
-		beforeInit:function(){
-			store.setChangeListener(this.onChange.bind(this));
-		},
-  		init: function () {
-			var that = this;
-    			this.on('change', function data) {
-      				actions.addItem(data);
-    			});
-			
-			this.on('teardown', function(){
-				store.unsetChangeListener(that.onChange);
-			});
-  		},
-  		data: {
-    			todos: (store.getState() || [])
-  		},
-		onChange:function(){
-			this.set('todos', store.getState());
-		}
-	});
-	
-	var shoeView = new shoeComponent({
-		el:'#root', /* id of mount point {DOM element} for ractive view  */
-	});
-
-	shoeView.on('update', function(data){	
-		console.log("updated!");
-	});
-```
-
-
 ## Browser Support
 
-- IE 8.0+ (Trident)
+- IE 9.0+ (Trident)
 - Edge 13+ (EdgeHTML)
-- Opera 10.5+ (Presto, Blink)
-- Chrome 3.0+ (Webkit, Blink)
-- Firefox 3.5+ (Gecko)
-- Safari 5.0+ (AppleWebkit)
+- Opera 11.6+ (Presto, Blink)
+- Chrome 4.0+ (Webkit, Blink)
+- Firefox 4.0+ (Gecko)
+- Safari 7.0+ (AppleWebkit)
 
 ## Gotchas/Caveats
 
