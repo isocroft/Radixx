@@ -8,7 +8,7 @@ A list of all significant feature addition and/or code changes to **Radixx**
 
 ## 0.1.1 - 2018-06-12
 
-- Added 2 prominent feature + bug fixes. 
+- Effected key bug fixes. 
 - Added improved stability.
 - Added support for persistence and auto-rehydration with cross-tab store update support. 
 
