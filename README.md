@@ -1248,11 +1248,11 @@ angular.module("appy.todos", [
  	 *
  	 *	# Only use `setState` on the ROOT and PRESENTATION Components
  	 *	# Only use `componentWillMount` on the ROOT Component (There MUST BE only 1 ROOT Component per App).
- 	 * 	# Only use `componentDidMount`, `componentWillUnmount` and `mixins` on CONTAINER Components
- 	 * 	# Only use `shouldComponentUpdate`, `componentWillRecieveProps`, `componentDidUpdate`, `getDefaultProps`, `getInitialState` and `mixins` on PRESENTATION Components
- 	 * 	# The STORE should be attached to both the CONTAINER and PRESENTATION Components
- 	 * 	# The ACTION_CREATOR should be attached only to PRESENTATION Components
- 	 *	# The `render` method should be used on all 3 Component Categories (ROOT, PRESENTATION and CONTAINER)
+ 	 * 	# Only use `shouldComponentUpdate`, `componentWillRecieveProps`, `componentDidMount`, `componentWillUnmount`, `getDefaultProps` and `mixins` on CONTAINER Components
+ 	 * 	# Only use `shouldComponentUpdate`, `componentWillRecieveProps`, `componentDidUpdate`, `getDefaultProps` `getInitialState` and `mixins` on PRESENTATION Components
+ 	 * 	# The STORE should only be attached to CONTAINER Components
+ 	 * 	# The ACTION_CREATOR should only be attached to PRESENTATION Components
+ 	 *	# The `render` method can be used on all 3 Component Categories (ROOT, PRESENTATION and CONTAINER)
  	 *	# Only use `makeTrait` method of STORE(s) to create Mixins for the CONTAINER and PRESENTATON Components
  	 * 	# Only insert UI state (which is transient and non-persistent) in the state object of PRESENTATION Components
  	 *	# The `setState` method MUST NEVER be used in CONTAINER Components
@@ -1357,12 +1357,6 @@ angular.module("appy.todos", [
 					return axios.post(_url, _data);
 
 			},
-			getDefaultProps:function(){
-
-				return {
-					shoes:store.getState('shoes')
-				};
-			},
 			getInitialState:function(){
 
 				/* 
@@ -1389,7 +1383,15 @@ angular.module("appy.todos", [
 
 					/* unsubscribe store change listener */
 					store.unsetChangeListener(listener);
-				}
+				},
+				shouldComponentUpdate:function(nextProps, nextState){
+					let title = store.getTitle();
+				
+					return (
+						!Radixx.Helpers.isEqual(this.props[title], nextProps[title]) ||
+						!Radixx.Helpers.isEqual(this.state, nextState)
+					);
+				},
 				componentDidMount:function(){
 
 					/* Assuming use of socket.io library - joining a room */
@@ -1398,6 +1400,12 @@ angular.module("appy.todos", [
 					/* subscribe store change listener */
 					store.setChangeListener(listener);
 
+				},
+				getDefaultProps:function(){
+
+					return {
+						shoes:store.getState('shoes')
+					};
 				}
 			};
 	}, function(actionType, actionKey){
@@ -1520,7 +1528,7 @@ angular.module("appy.todos", [
 			mixins:[ContainerTrait],
 			render:function(){
 
-					 var _shoes = store.getState('shoes');
+					 var _shoes = this.props.shoes;
 
 					 return (
 
@@ -1592,10 +1600,7 @@ angular.module("appy.todos", [
 
 						console.log(appstate);
 
-						that.setState(function(prevState, props){
-
-							return prevState;
-						});
+						that.setState(appsate);
 
 					});
 
@@ -1604,8 +1609,10 @@ angular.module("appy.todos", [
 					
 			},
 			render:function(){
+			
+				let shoes = this.state.shoes || {};
 
-				return <ListingsContainer />
+				return <ListingsContainer shoes={shoes} />
 			}
 	});
 
@@ -1628,7 +1635,7 @@ angular.module("appy.todos", [
 
 ## Gotchas/Caveats
 
-- Trying to `swap` the store callback using the **swapCallback()** method before setting a store listener using **setChnageListener()** will always throw a type error.
+- Trying to `swap` the store callback using the **swapCallback()** method before setting a store listener using **setChangeListener()** will always throw a type error.
 
 - Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called. Only middlewares and store state change listeners are called. Also, the data in the store is overwritten with that passed as an argument to the **hydrate()** method.
 
