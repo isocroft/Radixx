@@ -18,5 +18,5 @@ A list of all significant feature addition and/or code changes to **Radixx**
 - Added ES6 support.
 - Added Yarn support.
 - Some light code refactoring.
-- Added support for `actionDefinition` property of to recieve array of payload types.
+- Added support for `actionDefinition` property of `actionCreatorConfigs` to recieve array of payload types.
 - Added support for **React Native** environment detection.
