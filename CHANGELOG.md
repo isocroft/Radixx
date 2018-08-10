@@ -15,7 +15,8 @@ A list of all significant feature addition and/or code changes to **Radixx**
 ## 0.1.2 - 2018-08-18
 
 - `sessionStorage` can now work in an iframe.
-- Added ES6 support
-- Added Yarn support
-- Some light code refactoring
+- Added ES6 support.
+- Added Yarn support.
+- Some light code refactoring.
 - Added support for `actionDefinition` property of to recieve array of payload types.
+- Added support for **React Native** environment detection.
