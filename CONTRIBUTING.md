@@ -24,11 +24,53 @@ Before submitting a pull request:
 
 ## Code Requests
 
+Here, you can include any code request you wish could be added to Radixx. I have included a few and set release time-lines for them. 
+
+>Include a way to modify the way store callbacks are executed every time a dspatch is made.
+
+- define **{store}.waitsFor(array: storesToWaitFor)** as part of the _store_ APIs as seen below:
+
+>As of the next version of **Radixx** (i.e. - v0.1.3). This method will be included to alter the order of calls to store callbacks. As of the current version, the order is predicated on the order with which stores are created.
+
+```js
+
+	// below is a form of such implementation
+	
+	let store_a = Radixx.makeStore('a', function(){ ... }, {});
+	
+	let store_b = Radixx.makeStore('b', function(){ ... }, []);
+	
+	let store_c = Radixx.makeStore('c', function(){ ... }, {});
+	
+	store_b.waitsFor([store_c]);
+	
+	store_a.waitsFor([store_b, store_c]);
+	
+	store_c.waitsFor([store_a]); // throws an error
+	
+	/**
+		// keps track of all dependencies for each store (which are other stores)
+		
+		const = _storeCallbacksDependencyMap:{
+				"a":["b", "c"]
+				,"b":["c"]
+				// ,"c":["a"] -> cyclic dependency
+		};
+
+		// keeps track of all stores and the order of calls to their callbacks
+		
+		const stores = [ 
+ 				"c", "b", "a" 
+		];
+	*/
+
+```
+
 >Configure the manner in which the <q>dispacth</q> triggers the store callbacks.
 
-- define **Radixx.onError(function: fn)** as part of _Radixx_ APIs as seen below:
+- define **Radixx.onError(function: errorHandler)** as part of _Radixx_ APIs as seen below:
 
->As at the upper version of **Radixx** (i.e. - v0.1.4). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
+>As at the upper version of **Radixx** (i.e. - v0.1.5). Whenever something goes wrong as a result of a type/syntax/range/reference error (mostly in the store callback or due to invalid action data type). Radixx always throw an error without trying to handle it. In subsequent versions, **Radixx** proposes to expose a proper error handler registration API to handle error conditions gracefully.
 
 ```js
 
