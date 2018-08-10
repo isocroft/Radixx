@@ -4,6 +4,8 @@
 
 This is a simple Javascript library that implements the **Facebook Flux Architecture** with a twist to how the entire application state is managed, changed and updated. It resembles **Redux** in a lot of ways. The key deferentiator in both is that **Radixx** utilizes an _actions stack_ and **Redux** utilizes an immutable _state tree_. A single state tree can grow big really fast for a single store but an actions stack grows subtlely for a number of stores when dealing with complex single-page applications(SPAs). The actions stack allows **Radixx** to *<q>recalulate</q>* any state at anytime on demand. It is also how **Radixx** maintains it's _immutablility_.
 
+![radixx flow](Radixx_Flow.PNG)
+
 ## File Size 
 
 The footprint for **Radixx** is really small. With all it's functionality, it's just 19KB when minified!
@@ -1227,6 +1229,8 @@ angular.module("appy.todos", [
 
 	<script type="text/javascript" src="https://unpkg.com/react@0.13.1/dist/JSXTransformer.js"></script>
 ```
+
+![react radixx](React_Radixx.PNG)
 
 ```js
 	
