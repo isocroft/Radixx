@@ -18,11 +18,11 @@ if (env === 'build') {
 
 module.exports = {
 	mode: mode,
-	entry:path.resolve(__dirname, '/src/index.js'),
+	entry:path.resolve(__dirname, '/src/es/index.js'),
 	output:{
 	    	path: path.resolve(__dirname, './dist'),
-	    	filename:"radixx.es2015.js",
-	    	/*library: 'radixx',
+	    	filename:outputFile/*,
+	    	library: libraryName,
 	    	libraryTarget: 'umd',
 	    	umdNamedDefine: true*/
 	},
