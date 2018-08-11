@@ -58,13 +58,13 @@ let $createBeforeTearDownCallback = config => e => {
     // console.log('Node: '+ lastActivatedNode);
 
     __timeOutCallback.lock = __hasDeactivated = true;
-    beforeUnloadTimer = setTimeout(__timeOutCallback, 0);
+    beforeUnloadTimer = wind.setTimeout(__timeOutCallback, 0);
 
     if(isLogoff){ // IE/Firefox/Chrome 34+
         if(!!~e.type.indexOf('beforeunload')){
             e.returnValue = leaveMessage; 
         }else{
-            _confirm = confirm(leaveMessage);
+            _confirm = confirm && confirm(leaveMessage);
             if(!_confirm){
                 _checkAndKillEventPropagation(e);
             }
@@ -183,7 +183,7 @@ const futuresStates = {
 
 const formatOptions = opts => {
      const options = {}, _opts = String(opts).split(",");
-     _opts.forEach(key => {
+     each(_opts, key => {
            options[key] = true;
      });
      options.savedData = !1;
@@ -239,7 +239,7 @@ const Routines = opts => {
             const start = pending.length;
             (function add(args){
              
-                   args.forEach(arg => {
+                   each(args, arg => {
 			  const type = typeof arg;
                           
                           if(type == "function"){
@@ -420,4 +420,4 @@ let Futures = function(){
     return (self instanceof Futures)? self : new Futures();
 };
 
-export { Hop, Slc, defaultConfig, wind, $createTearDownCallback, $createBeforeTearDownCallback, each, extend, curry, Futures }
+export { Hop, Slc, defaultConfig, wind, $createTearDownCallback, $createBeforeTearDownCallback, each, extend, curry, Futures, _ping }
