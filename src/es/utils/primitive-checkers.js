@@ -1,3 +1,4 @@
+import { wind } from './utils/routines/basics.js';
 
 export const Payload = {
         type:{
@@ -11,7 +12,7 @@ export const Payload = {
                      "number":"number",
                      error(value) {
 
-                            return (value instanceof Error || value instanceof TypeError);
+                            return (value instanceof wind.Error || value instanceof wind.TypeError);
                      },
                      nullable(value) {
 
@@ -19,10 +20,10 @@ export const Payload = {
                      },
                      "numeric":{
                         Int(value) {
-                            return isFinite(value) && (value === parseInt(value))
+                            return wind.isFinite(value) && (value === wind.parseInt(value))
                         },
                         Float(value) {
-                            return isFinite(value) && (value === parseFloat(value))
+                            return wind.isFinite(value) && (value === wind.parseFloat(value))
                         }
                      },
                      any(value) {
