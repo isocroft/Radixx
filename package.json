@@ -14,6 +14,7 @@
   ],
   "scripts": {
     "lint": "jshint src tests",
+    "build":"",
     "benchmark": "node benchmark.js",
     "test": "karma start radixx.conf.js --single-run"
   },
