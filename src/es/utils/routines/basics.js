@@ -43,8 +43,8 @@ let $createBeforeTearDownCallback = config => e => {
                             || e.srcElement
                                 || e.target);
 
-    const // if the "imaginary" user is logging out
-    leaveMessage = "Are you sure you want to leave this page ?";
+    // if the "imaginary" user is logging out
+    const leaveMessage = "Are you sure you want to leave this page ?";
 
     const isLogoff = ((typeof lastActivatedNode.hasAttribute == 'function' && lastActivatedNode.hasAttribute('data-href') && lastActivatedNode.getAttribute('data-href').includes(config.runtime.shutDownHref)) 
                     || (('href' in lastActivatedNode) && (lastActivatedNode.href.includes(config.runtime.shutDownHref))));
@@ -118,7 +118,8 @@ let $createTearDownCallback = hub => e => {
 
 let defaultConfig = {
 		runtime:{
-			spaMode:true, shutDownHref:''
+			spaMode:true, 
+			shutDownHref:''
 		},
 		persistenceEnabled:false,
 		autoRehydrate:false,
@@ -156,7 +157,7 @@ let extend = (source, dest) => {
 
 			if(typeof dest[prop] === "object"
 	 			&& dest[prop] !== null){
-			 	merge[prop] = _extend(source[prop], dest[prop]);
+			 	merge[prop] = extend(source[prop], dest[prop]);
 			 }else if(source && Hop.call(source, prop)){
 			 	merge[prop] = source[prop];
 			 }else {
@@ -205,10 +206,12 @@ const Routines = opts => {
           firing = true; // firing has begun!
           index = fireStart || 0;
           fireEnd = pending.length;
+	    
           for(fireStart = 0; index < fireEnd; index++){
                  // @TODO: need to curry args instead of directly binding them #DONE
-               setTimeout(_curry(pending[index], data[1], data[0])/*.bind(data[0], data[1])*/, 20); // fire asynchronously (Promises/A+ spec requirement)
+               wind.setTimeout(curry(pending[index], data[1], data[0])/*.bind(data[0], data[1])*/, 20); // fire asynchronously (Promises/A+ spec requirement)
           }
+	    
           firing = false; // firing has ended!
 
           if(queue){ // deal with the queue if it exists and has any contents...
@@ -237,10 +240,10 @@ const Routines = opts => {
             (function add(args){
              
                    args.forEach(arg => {
-				          const type = typeof arg;
+			  const type = typeof arg;
                           
                           if(type == "function"){
-                             len = pending.push(arg);
+                             	len = pending.push(arg);
                           }else{
                              if(!!arg && arg.length && typeof arg != "string"){
                              	 // inspect recursively
@@ -268,8 +271,8 @@ const Routines = opts => {
         return len;
     },
     hasFn(fn) {
-	    let result = false;
-        _each(pending, val => {
+	    	let result = false;
+            	each(pending, val => {
 		     if(typeof fn === "function" && fn === val)
 			      result = true;
 		}, this);
@@ -417,4 +420,4 @@ let Futures = function(){
     return (self instanceof Futures)? self : new Futures();
 };
 
-export { Hop, Slc, defaultConfig, wind, $createTearDownCallback, $createBeforeTearDownCallback, Futures }
+export { Hop, Slc, defaultConfig, wind, $createTearDownCallback, $createBeforeTearDownCallback, each, extend, curry, Futures }
