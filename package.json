@@ -1,7 +1,7 @@
 {
   "name": "radixx",
   "version": "0.1.2",
-  "description": "A simple and efficient JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
+  "description": "A simple and robust JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
   "keywords": [
     "Flux",
     "Event Source",
@@ -14,7 +14,8 @@
   ],
   "scripts": {
     "lint": "jshint src tests",
-    "build":"",
+    "build": "webpack --env dev && webpack --env build && npm run test",
+    "dev": "webpack --progress --colors --watch --env dev",
     "benchmark": "node benchmark.js",
     "test": "karma start radixx.conf.js --single-run"
   },
@@ -25,7 +26,7 @@
     }
   ],
   "contributors": [
-    "nil"
+    "@synergixe"
   ],
   "license": "MIT",
   "repository": {
@@ -43,12 +44,22 @@
     "karma-firefox-launcher": "^0.1.4",
     "karma-jasmine": "^0.3.5",
     "benchmark": "~1.0.0",
-    "babel": "~5.8.38",
-    "babelify": "~6.4.0"
+    "babel-cli": "^6.26.",
+    "babel-core": "^6.26.3",
+    "babel-preset-env": "^1.7.0",
+    "babel-eslint": "^8.0.3",
+    "babel-loader": "^8.0.0-beta.4",
+    "babel-plugin-add-module-exports": "^0.2.1",
+    "eslint": "^5.0.1",
+    "eslint-loader": "^2.0.0",
+    "uglifyjs-webpack-plugin": "^1.2.7",
+    "webpack": "^4.12.2",
+    "webpack-cli": "^3.0.8",
+    "yargs": "^10.0.3"
   },
   "dependencies": {},
   "engines": {
-    "node": ">= 8.5.0"
+      "node": ">= 8.5.0"
   },
   "main": "src/radixx.js",
   "browser": "dist/radixx.min.js",
