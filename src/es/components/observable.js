@@ -1,4 +1,4 @@
-import {, , } from '../utils/routines/extras.js';
+import {window, promise, each, curry} from '../utils/routines/basics.js';
 
 export function setStoreObserver(){
 
