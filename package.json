@@ -3,14 +3,15 @@
   "version": "0.1.2",
   "description": "A simple and robust JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
   "keywords": [
-    "Flux",
-    "Event Source",
-    "Actions",
-    "State",
-    "Store",
-    "Actions",
-    "Redux Like",
-    "Action Creators"
+    "flux",
+    "event source",
+    "action stack",
+    "state",
+    "store",
+    "actions",
+    "functional",
+    "predictable",
+    "hydration"
   ],
   "scripts": {
     "lint": "jshint src tests",
@@ -44,11 +45,12 @@
     "karma-firefox-launcher": "^0.1.4",
     "karma-jasmine": "^0.3.5",
     "benchmark": "~1.0.0",
-    "babel-cli": "^6.26.",
-    "babel-core": "^6.26.3",
-    "babel-preset-env": "^1.7.0",
-    "babel-eslint": "^8.0.3",
-    "babel-loader": "^8.0.0-beta.4",
+    "babel-cli": "^6.26.0",
+    "babel-core": "^6.26.0",
+    "babel-eslint": "^8.2.3",
+    "babel-preset-env": "^1.6.1",
+    "babel-register": "^6.26.0",
+    "babel-loader": "^7.1.5",
     "babel-plugin-add-module-exports": "^0.2.1",
     "eslint": "^5.0.1",
     "eslint-loader": "^2.0.0",
@@ -63,7 +65,7 @@
   },
   "main": "src/radixx.js",
   "browser": "dist/radixx.min.js",
-  "module":"src/radixx.es2015.js",
+  "module":"dist/radixx.es2015.min.js",
   "unpkg": "dist/radixx.min.js",
   "jsdelivr": "dist/radixx.min.js",
   "jsnext:main": "src/radixx.module.js",
@@ -73,7 +75,6 @@
   },
   "files": [
     "dist/*.js",
-    "yarn.lock",
     "src/*.js",
     "*.md"
   ]
