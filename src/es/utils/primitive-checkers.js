@@ -1,4 +1,4 @@
-import { wind } from './utils/routines/basics.js';
+import { wind } from './routines/basics.js';
 
 export const Payload = {
         type:{
