@@ -1,43 +1,37 @@
-import {, , , } from './observable.js';
+import * as observable from './components/observable.js';
+import Helpers from './utils/helpers.js';
+import Payload from './utils/primitive-checkers.js'
 
-let Helpers = {
-  isEqual(){
-  
-  }
-};
+function makeStore(){
+    observable.setStoreObserver();
+}
 
-export function makeStore(){
+function makeActionCreators(){
+    
+}
+
+function purgePersistentStore(){
 
 }
 
-export function makeActionCreators(){
+function isAppStateRehydrated(){
 
 }
 
-export function purgePersistentStore(){
+function configure(){
 
 }
 
-export function configure(){
+function attachMiddleware(){
 
 }
 
-export function attachMiddleware(){
+function onDispatch(){
 
 }
 
-export function onDispatch(){
+function onShutdown(){
 
 }
 
-export function onShutdown(){
-
-}
-
-export {
-  Helpers
-}
-
-export {
-    Helpers
-}
+export { Helpers, makeStore, makeActionCreators, purgePersistentStore, isAppStateRehydrated, configure, attachMiddleware, onDispatch, onShutdown }
