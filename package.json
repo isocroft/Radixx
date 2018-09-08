@@ -1,6 +1,6 @@
 {
   "name": "radixx",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "A simple and robust JavaScript library for managing application state based on Facebooks' Flux Architecture with a twist",
   "keywords": [
     "flux",
@@ -37,12 +37,11 @@
   "homepage": "https://github.com/isocroft/Radixx",
   "devDependencies": {
     "jshint": "^2.9.4",
-    "uglifyjs": "^2.4.10",
     "watchify": "^3.8.0",
     "jasmine-core": "^2.2.0",
-    "karma": "^0.12.31",
-    "karma-firefox-launcher": "^0.1.4",
-    "karma-jasmine": "^0.3.5",
+    "karma": "^2.0.0",
+    "karma-firefox-launcher": "^1.1.0",
+    "karma-jasmine": "^1.1.1",
     "benchmark": "~1.0.0",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.0",
@@ -74,6 +73,7 @@
   },
   "files": [
     "dist/*.js",
+    "dist/*.js.map",
     "src/*.js",
     "*.md"
   ]
