@@ -16,15 +16,16 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 
 <img src="radixx.png"></img>
 
-## How to Use - < 2 steps >
+## Quick Start in 2 steps
 
-- First, download/install it from **NPM** or **Yarn**
+- First, download/install it from **npm** or **yarn**
 
-[NPM][npm-url] [Download][downloads-url]
+[Radixx NPM Page][npm-url]
+
 
 ```bash
 
-	$ npm install radixx --save
+	$ npm i radixx --save
 ```
 
 ```bash
@@ -39,11 +40,11 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 <!DOCTYPE html>
 <html id="demo_app">
 <head>
-	<title>Radixx (Vanilla JS) - Example App</title>
+	<title>Radixx (Vanilla) - Example App</title>
 	<!-- relative path (NodeJS)
 	<script type="text/javascript" src="node_modules/radixx/dist/radixx.min.js"></script> -->
 	<!-- absolute path (Unpkg) via CDN -->
-	<script type="text/javascript" src="https://unpkg.com/radixx@0.1.2/dist/radixx.min.js"></script>
+	<script type="text/javascript" src="https://unpkg.com/radixx@0.1.3/dist/radixx.min.js"></script>
 	<script type="text/javascript">
 	;(function(w, r){
 
@@ -660,14 +661,6 @@ These are methods defined on the store object from **Radixx.makeStore( ... )** c
 - Application Data State {a.k.a Non-Volatile Data} -- **do store** this in Radixx stores (e.g. Lists for Render fetched from API endpoints, any piece of Data displayed on the View)
 
 > NOTE: When using Radixx with ReactJS, it is best to ascribe/delegate Application UI State to {this.state} and {this.setState(...)} and Application Domain Data State to {this.props} respectively. One reason why Radixx recommends this approach is to avoid confusion as to when {this.setState} calls actually update both the DOM and {this.state} since {this.setState} is sometimes _asynchronous_ in the way it operates.
-
-# Caveats/Gotchas
-
-- Radixx would not maintain state across multiple tabs in a browser except the  **<q>universalCoverage</q>** config option is set to **true**.
-- Radixx throws an error if the **<q>runtimeMode</q>** config option
-- Always call the **Radixx.configure()** method before creating action creators and stores. If you don't want to change the default configuratio for **Radixx**, simply call **Radixx.configure({})**.
-- Radixx would not access the storage objects where necessary if it is placed in an iframe that has very tight _sandbox attribute_ restrictions or does not have the same scheme and domain as the parent window (same-origin policy restrictions) except a reverse proxy tactic or the [domain hack](http://qnimate.com/same-origin-policy-in-nutshell/) is used.
-
 
 ## About Redux (with respect to Radixx)
 
@@ -1640,9 +1633,17 @@ angular.module("appy.todos", [
 
 ## Gotchas/Caveats
 
+- Radixx would not maintain state across multiple tabs in a browser except the  **<q>universalCoverage</q>** config option is set to **true**.
+
+- Radixx does provide for extrememly old browsers like (IE 8) but will not work properly on these because all polyfills for **ES5 native browser APIs** (e.g. Array.prototype.forEach / Array.prototype.reduceRight / Object.keys / Object.create) have been removed from source as from v0.1.3. Please, include the [polyfill.io library](https://polyfill.io) if you wish to still support IE 8 fully.
+
+- Radixx throws an error if the **<q>runtimeMode</q>** config option is omitted.
+
+- Radixx would not access the storage objects where necessary if it is placed in an iframe that has very tight _sandbox attribute_ restrictions or does not have the same scheme and domain as the parent window (same-origin policy restrictions) except a reverse proxy tactic or the [domain hack](http://qnimate.com/same-origin-policy-in-nutshell/) is used.
+
 - Trying to `swap` the store callback using the **swapCallback()** method before setting a store listener using **setChangeListener()** will always throw a type error.
 
-- Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called. Only middlewares and store state change listeners are called. Also, the data in the store is overwritten with that passed as an argument to the **hydrate()** method.
+- Whenever you instantly fill up a store by using the **hydrate()** method, the store callback is NEVER called. Only middlewares and store state change listeners are called. Also, the data in the store is OVERWRITTEN with that passed as an argument to the **hydrate()** method.
 
 - It's COMPULSORY to call **Radixx.configure()** before your application code loads (after loading the Radixx library) else **Radixx** may not work properly or as expected. If you would like to setup **Radixx** with the default config simply call as below: 
 
@@ -1671,4 +1672,3 @@ MIT
 Please feel free to open an issue, fix a bug or send in a pull request. I'll be very glad you did. You can also reach me on Twitter [@isocroft](https://twitter.com/isocroft). See the **CONTRIBUTING.md** file for more details.
 
 [npm-url]: https://npmjs.com/package/radixx
-[downloads-url]: https://npmjs.com/package/radixx
