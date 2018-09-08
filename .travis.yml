@@ -1,6 +1,7 @@
 language: node_js
 node_js:
-    - "0.11"
+    - "6.14"
+    - "8.10"
 script: node_modules/karma/bin/karma start radixx.conf.js --single-run
 before_install:
     - export DISPLAY=:99.0
