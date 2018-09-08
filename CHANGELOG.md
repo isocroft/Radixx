@@ -20,3 +20,11 @@ A list of all significant feature addition and/or code changes to **Radixx**
 - Some light code refactoring.
 - Added support for `actionDefinition` property of `actionCreatorConfigs` to recieve array of payload types.
 - Added support for **React Native** environment detection.
+
+## 0.1.3 - 2018-12-30
+
+- Removed ES5 Browser APIs polyfill(s) from source
+- Removed dev dependencies with vulnerability issues
+- Heavy code refactoring
+- Bug fixes
+- Added support for `waitsFor` method of `store` object(s)
