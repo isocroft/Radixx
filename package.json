@@ -15,8 +15,8 @@
   ],
   "scripts": {
     "lint": "jshint src tests",
-    "build": "webpack --env dev && webpack --env build && npm run test",
-    "dev": "webpack --progress --colors --watch --env dev",
+    "build": "./node_modules/.bin/webpack --progress --colors --env dev && ./node_modules/.bin/webpack --progress --colors --env build && npm run test",
+    "dev": "./node_modules/.bin/webpack --progress --colors --watch --env dev",
     "benchmark": "node benchmark.js",
     "test": "karma start radixx.conf.js --single-run"
   },
@@ -35,7 +35,6 @@
     "url": "git+https://github.com/isocroft/Radixx"
   },
   "homepage": "https://github.com/isocroft/Radixx",
-  "sideEffects": false,
   "devDependencies": {
     "jshint": "^2.9.4",
     "uglifyjs": "^2.4.10",
@@ -61,11 +60,11 @@
   },
   "dependencies": {},
   "engines": {
-      "node": ">= 8.5.0"
+    "node": "^6.14.0 || ^8.10.0 || >= 9.10.0"
   },
   "main": "src/radixx.js",
   "browser": "dist/radixx.min.js",
-  "module":"dist/radixx.es2015.min.js",
+  "module": "dist/radixx.es2015.min.js",
   "unpkg": "dist/radixx.min.js",
   "jsdelivr": "dist/radixx.min.js",
   "jsnext:main": "src/radixx.module.js",

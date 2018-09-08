@@ -11,17 +11,6 @@
   * @desc: Implementation of Facebooks' Flux Architecture with a Twist.
   */
 
- /**
-  *
-  * When using with TypeScript in the `tsconfig`
-  *
-  *	{
-    		"compilerOptions": {
-        		"module": "es2015",
-        		"allowSyntheticDefaultImports": true
-    		}
-	}
-  */
 
  !function(root, factory){
 	 'use strict';

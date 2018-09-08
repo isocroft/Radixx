@@ -1,134 +1,17 @@
-let wind = (('undefined' !== typeof process &&
+
+const wind = (('undefined' !== typeof process &&
     '[object process]' === ({}).toString.call(process)) ||
   ('undefined' !== typeof navigator && navigator.product === 'ReactNative')
 ? global : typeof window !== "undefined" ? window : self);
 
-let Hop = ({}).hasOwnProperty;
+const Hop = ({}).hasOwnProperty;
 
-let Slc = ([]).slice;
+const Slc = ([]).slice;
 
-let __beforeunload = wind.onbeforeunload;
-
-let __unload = wind.onunload;
-
-let __hasDeactivated = false;
-
-let _ping = appState => {
-
-		return;
-};
-
-let _checkAndKillEventPropagation = event => {
-	if(event.type === 'click'){
-   		if(event.stopPropagation){
-   			event.stopPropagation();
-   		}else{
-   			event.cancelBubble = true;
-   		}
-   	}
-};
-
-let $createBeforeTearDownCallback = config => e => {
-    // @See: https://greatgonzo.net/i-know-what-you-did-on-beforeunload/
-
-    /* 
-         `lastActivatedNode` variable is used to track the DOM Node that last 
-         had focus (or was clicked) just before the browser triggered the `beforeunload` event 
-     */
-
-    const lastActivatedNode = (wind.currentFocusElement // Mobile Browsers [ Custom Property ]
-                || e.explicitOriginalTarget // old/new Firefox
-                    || (e.srcDocument && e.srcDocument.activeElement) // old Chrome/Safari
-                        || (e.currentTarget && e.currentTarget.document.activeElement) // Sarafi/Chrome/Opera/IE
-                            || e.srcElement
-                                || e.target);
-
-    // if the "imaginary" user is logging out
-    const leaveMessage = "Are you sure you want to leave this page ?";
-
-    const isLogoff = ((typeof lastActivatedNode.hasAttribute == 'function' && lastActivatedNode.hasAttribute('data-href') && lastActivatedNode.getAttribute('data-href').includes(config.runtime.shutDownHref)) 
-                    || (('href' in lastActivatedNode) && (lastActivatedNode.href.includes(config.runtime.shutDownHref))));
-
-    const __timeOutCallback = () => {
-            
-            __hasDeactivated = __timeOutCallback.lock;
-
-    };
-
-    // console.log('Node: '+ lastActivatedNode);
-
-    __timeOutCallback.lock = __hasDeactivated = true;
-    beforeUnloadTimer = wind.setTimeout(__timeOutCallback, 0);
-
-    if(isLogoff){ // IE/Firefox/Chrome 34+
-        if(!!~e.type.indexOf('beforeunload')){
-            e.returnValue = leaveMessage; 
-        }else{
-            _confirm = confirm && confirm(leaveMessage);
-            if(!_confirm){
-                _checkAndKillEventPropagation(e);
-            }
-        }
-    }else{
-        _checkAndKillEventPropagation(e);
-    }
-
-    /* if (isLogoff) isn't true, no beforeunload dialog is shown */
-    return ((isLogoff) ?  ((__timeOutCallback.lock = false) || leaveMessage) : clearTimeout(beforeUnloadTimer));
-};
-
-let $createTearDownCallback = hub => e => {
-
-    /*
-        This seems to be the best way to setup the `unload` event 
-        listener to ensure that the load event is always fired even if the page
-        is loaded from the `bfcache` (Back-Forward-Cache) of the browser whenever
-        the back and/or forward buttons are used for navigation instead of links.
-        Registering it as a property of the `window` object sure works every time
-    */
-
-            if(!__hasDeactivated){
-
-                setTimeout(() => {
-
-                        let appstate = {};
-                    
-                        hub.eachStore((store, next) => {
-
-                            const title = store.getTitle();
-
-                            appstate[title] = store.getState(); 
-                        
-                            store.disconnect();
-                            store.destroy();
-
-                            next();
-
-                        });
-
-                        _ping.call(hub, appstate);
-
-                        if(e.type != 'click'){
-                            __unload(e);
-                        }
-
-                }, 0);
-            }
-};
-
-let defaultConfig = {
-		runtime:{
-			spaMode:true, 
-			shutDownHref:''
-		},
-		persistenceEnabled:false,
-		autoRehydrate:false,
-		universalCoverage:false,
-		localHostDev:false
-};
+const isNullOrUndefined = obj => obj == void 0;
 
 
-let each = (obj, iterator, context) => {
+const each = (obj, iterator, context) => {
 	
 	if(context === undefined){
 
@@ -148,28 +31,29 @@ let each = (obj, iterator, context) => {
  * @params
  * @return
  */
-let extend = (source, dest) => {
+
+const extend = (source, dest) => {
 
 	 let merge = {};
 
 	 for(let prop in dest){
-		if(Hop.call(dest, prop)){
+  		if(Hop.call(dest, prop)){
 
-			if(typeof dest[prop] === "object"
-	 			&& dest[prop] !== null){
-			 	merge[prop] = extend(source[prop], dest[prop]);
-			 }else if(source && Hop.call(source, prop)){
-			 	merge[prop] = source[prop];
-			 }else {
-			 	merge[prop] = dest[prop];
-			 }
-		}
+    			if(typeof dest[prop] === "object"
+    	 			&& dest[prop] !== null){
+    			 	merge[prop] = extend(source[prop], dest[prop]);
+    			 }else if(source && Hop.call(source, prop)){
+    			 	merge[prop] = source[prop];
+    			 }else {
+    			 	merge[prop] = dest[prop];
+    			 }
+  		}
 	 }
 
 	return merge;
 };
 
-let curry = (func, args, context) => function(){
+const curry = (func, args, context) => function(){
     let _args = Slc.call(arguments);
     return func.apply(context, args.concat(_args)); 
 };
@@ -420,4 +304,4 @@ let Futures = function(){
     return (self instanceof Futures)? self : new Futures();
 };
 
-export { Hop, Slc, defaultConfig, wind, $createTearDownCallback, $createBeforeTearDownCallback, each, extend, curry, Futures, _ping }
+export { Hop, Slc, isNullOrUndefined, wind, each, extend, curry, Futures }

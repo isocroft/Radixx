@@ -3,12 +3,27 @@ import { Action, Store } from './utils/routines/extras.js';
 import Helpers from './utils/helpers.js';
 import Payload from './utils/primitive-checkers.js'
 
+ /*!
+  * @lib: Radixx
+  * @version: 0.1.2
+  * @author: Ifeora Okechukwu
+  * @created: 30/12/2016
+  *
+  * All Rights Reserved 2016 - 2018.
+  * Use, reproduction, distribution, and modification of this code is subject to the terms and
+  * conditions of the MIT license, available at http://www.opensource.org/licenses/mit-license.php
+  *
+  * @desc: Implementation of Facebooks' Flux Architecture with a Twist. [ ES6 ]
+  */
 
-function toString(){   
+
+function toString(){
+
     return "[object RadixxHub]";
 }
 
-function makeStore(dataTitle, registerCallback, defaultStateObj){
+const makeStore = function(dataTitle, registerCallback, defaultStateObj){
+    
     function _store(...args){
         Store.apply(this, args);
     }
@@ -20,7 +35,7 @@ function makeStore(dataTitle, registerCallback, defaultStateObj){
     return storeObject;
 }
 
-function makeActionCreators(vectors){
+const makeActionCreators = function(vectors){
     function _action(...args){
             Action.apply(this, args);
     }
@@ -30,52 +45,59 @@ function makeActionCreators(vectors){
     return observable.setActionVectors(actionObject, vectors);
 }
 
-function purgePersistentStorage(){
+const purgePersistentStorage = function(){
     
     observable.purgePersistStore();
 }
 
-function eachStore(callback){
+const eachStore = function(callback){
     
     return observable.eachStore(callback, function(stores, key){
+
                 this.push(stores[key]);
     }, null);
 }
 
-function configure(config) {
-        
-        let _hub = {
-            eachStore
-        };
-    
-        observable.mergeConfig(config, _hub);
+let _hub = {
+    eachStore
+};
+
+
+const attachMiddleware = function(callback) {
+
+    return observable.setMiddlewareCallback(callback);
 }
 
-function attachMiddleware(callback) {
-
-    observable.setMiddlewareCallback(callback);
-}
-
-function isAppStateAutoRehydrated() {
+const isAppStateAutoRehydrated = function() {
 
     return observable.isAppStateAutoRehydrated();
 }
 
-function onDispatch(handler){
+const onDispatch = function(handler){
     
     if(typeof handler === 'function'){
 
-            observable.watchDispatcher(handler);
+        observable.watchDispatcher(handler);
     }
 }
 
-function onShutdown(){
+const configure = function(config) {
+    
+    return observable.mergeConfig(config, _hub);
+}
+
+const onShutdown = function(handler){
+
+    if(typeof handler === "function"){
+
+        observable.setupShutdownCallback(handler, _hub);
+    }
 
 }
 
-function requestAggregator() {
+const requestAggregator = function() {
 
     return observable.makeAggregator();
 }
 
-export { Helpers, Payload, makeStore, makeActionCreators, purgePersistentStore, isAppStateAutoRehydrated, configure, eachStore, attachMiddleware, onDispatch, onShutdown, toString }
+export { Helpers, Payload, makeStore, makeActionCreators, purgePersistentStorage, isAppStateAutoRehydrated, requestAggregator, configure, eachStore, attachMiddleware, onDispatch, onShutdown, toString }
