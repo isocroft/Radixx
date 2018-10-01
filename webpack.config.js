@@ -8,11 +8,11 @@ var libraryName = pkg.name, plugins = [], outputFile, mode;
 
 if (env === 'build') {
 
-  	outputFile = libraryName + '.es2015.min.js';
+  	outputFile = libraryName + '.umd.min.js';
   	mode = 'production';
 } else if(env === 'dev') {
 
-  	outputFile = libraryName + '.es2015.js';
+  	outputFile = libraryName + '.umd.js';
 	mode = 'development';
 }
 
@@ -21,10 +21,10 @@ module.exports = {
 	entry:path.resolve(__dirname, './src/es/index.js'),
 	output:{
 	    	path: path.resolve(__dirname, './dist'),
-	    	filename:outputFile/*,
+	    	filename:outputFile,
 	    	library: libraryName,
 	    	libraryTarget: 'umd',
-	    	umdNamedDefine: true*/
+	    	umdNamedDefine: true
 	},
 	module:{
 		rules: [

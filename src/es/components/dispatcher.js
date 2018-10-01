@@ -129,7 +129,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 
 	    }else{
 	    	
-	    	newStoreState = fn.call(queueing, action, area.get());
+	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$history[0]));
 
 	    	coverageNotifier.$$historyLocation = null;
 
@@ -265,7 +265,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 		}
 	};
 
-	const setAppState = appState => {
+	const setAppState = function(appState) {
 
 			each(appState, (isolatedState, storeTitle) => {
 
@@ -278,7 +278,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 			fireWatchers(appState, true);
 	};
 
-    const getAppState = () => {
+    const getAppState = function() {
 
 	        const appStateData = {};
 	        let key;
@@ -296,10 +296,16 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	                _data = sessStore.getItem(key);
 	                
 	                if(!_data){
-	                    ;
-	                }
+						observer = observers[key];
+						if(!!observer 
+							&& observer.$$history.length){
+							_data = setNormalized(observer.$$history[0]);
+						}else{
+							_data = null;
+						}
+					}
 
-	                appStateData[key] = getNormalized(_data) || null;
+					appStateData[key] = getNormalized(_data);
 	            }
 	        }else{
 	        
@@ -318,9 +324,15 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 
 	                    _data = values[1];
 
-	                }
+	                }else {
+						observer = observers[key];
+						if(!!observer
+							&& observer.$$history.length){
+							_data = setNormalized(observer.$$history[0]);
+						}
+					}
 
-	                appStateData[key] = getNormalized(_data) || null;
+					appStateData[key] = getNormalized(_data);
 	            }
 	        }
 
@@ -753,7 +765,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
                     observer.$$history = [(
                             !!defaultStoreContainer ? 
                             defaultStoreContainer :
-                                 []
+                                 null
                     )];
                     observer.$$historyIndex = 0;
                     observers[title] = observer;

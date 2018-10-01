@@ -5,7 +5,7 @@ import Payload from './utils/primitive-checkers.js'
 
  /*!
   * @lib: Radixx
-  * @version: 0.1.2
+  * @version: 0.1.3
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -25,7 +25,7 @@ function toString(){
 const makeStore = function(dataTitle, registerCallback, defaultStateObj){
     
     function _store(...args){
-        Store.apply(this, args);
+        Store.apply(this, [...args]);
     }
 
     const storeObject = new _store(dataTitle);
@@ -37,7 +37,7 @@ const makeStore = function(dataTitle, registerCallback, defaultStateObj){
 
 const makeActionCreators = function(vectors){
     function _action(...args){
-            Action.apply(this, args);
+            Action.apply(this, [...args]);
     }
 
     const actionObject = new _action(observable.registerAction());
@@ -52,7 +52,10 @@ const purgePersistentStorage = function(){
 
 const eachStore = function(callback){
     
-    return observable.eachStore(callback, function(stores, key){
+    return observable.eachStore(
+        function(...args){
+            callback(...args);
+        }, function(stores, key){
 
                 this.push(stores[key]);
     }, null);
@@ -65,7 +68,9 @@ let _hub = {
 
 const attachMiddleware = function(callback) {
 
-    return observable.setMiddlewareCallback(callback);
+    return observable.setMiddlewareCallback(function(...args){
+        callback(...args)
+    });
 }
 
 const isAppStateAutoRehydrated = function() {
@@ -77,7 +82,9 @@ const onDispatch = function(handler){
     
     if(typeof handler === 'function'){
 
-        observable.watchDispatcher(handler);
+        observable.watchDispatcher(function(...args){
+            handler(...args)
+        });
     }
 }
 
@@ -90,7 +97,9 @@ const onShutdown = function(handler){
 
     if(typeof handler === "function"){
 
-        observable.setupShutdownCallback(handler, _hub);
+        observable.setupShutdownCallback(function(...args){
+            handler(...args);
+        }, _hub);
     }
 
 }

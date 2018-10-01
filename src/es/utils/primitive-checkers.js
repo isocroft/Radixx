@@ -1,6 +1,6 @@
 import { wind } from './routines/basics.js';
 
-export const Payload = {
+const Payload = {
         type:{
                      "array":"array",
                      "date":"date",
@@ -32,3 +32,5 @@ export const Payload = {
                      }
           }
 };
+
+export { Payload }

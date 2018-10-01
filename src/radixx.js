@@ -1,6 +1,6 @@
  /*!
   * @lib: Radixx
-  * @version: 0.1.2
+  * @version: 0.1.3
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *
@@ -181,12 +181,10 @@ Values = {
             "string":String,
             "boolean":Boolean,
             "date":Date,
-	    "regexp":RegExp,	
+	    	"regexp":RegExp,	
             "function":Function
 	},
 	isOfType:function(type, value){
-		
-		var type = type.toLowerCase(); // hoisting
 		
 		if(typeof type === 'function'){
 			
@@ -195,6 +193,8 @@ Values = {
 
 		else if(typeof type === 'string'
 					&& (type in this.typesMap)){
+			type = type.toLowerCase(); // hoisting
+
 			return (/^string|function$/.test(typeof value)) 
 						|| (Object(value) instanceof this.typesMap[type]);
 		}
@@ -246,54 +246,6 @@ _curry = function (func, args, context){
 	};
 };
 
-Array.prototype.forEach = Array.prototype.forEach || function(fn, cxt){
-
-		return _each(this, fn, cxt);
-};
-
-Array.prototype.reduceRight = Array.prototype.reduceRight || function(fn /* initialValue */){
-	'use strict';
-
-	if(null === this || 'undefined' === typeof this){
-		throw new TypeError('Array.prototype.reduce called on null or undefined');
-	}
-
-	if('function' !== typeof fn){
-		throw new TypeError(callback + ' is not a function');
-	}
-
-	var t = Object(this), len = t.length >>> 0, k = len - 1, value;
-
-	if(arguments.length >= 2){
-
-		value = arguments[1];
-
-	} else {
-
-		while(k >= 0 && !(k in t)){
-			k--;
-		}
-
-		if(k < 0){
-			throw new TypeError('Reduce of empty array with no initial value')
-		}
-
-		value = t[k--];
-	}
-
-	for(; k >= 0; k--){
-		if(k in t){
-			value = callback(value, t[k], k, t);
-		}
-	}
-	return value;
-};
-
-Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */){
-
-		return _curry(this, [].slice(arguments, 1), cxt); 
-}
-
 /**
 
     Though IE 9 to IE 11 supports the CustomEvent constructor, IE throws an error {Object doesn't support this action} 
@@ -308,7 +260,7 @@ Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */
 
 	   function CEvent ( event, params ) {
 		var t, evt;
-		params = params || { bubbles: false, cancelable: false, detail: undefined };
+		params = params || { bubbles: false, cancelable: false, detail: null };
 		try{
 		    evt = d.createEvent( 'CustomEvent' );
 		    evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
@@ -317,13 +269,7 @@ Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */
 			evt.cancelBubble = !params.bubbles;
                         evt.returnValue = !params.cancelable;
 			if(typeof params.detail === "object"){
-				// set expando properties on event object
 				
-				/*for(t in params.detail){
-				   if((({}).hasOwnProperty.call(params.detail, t))){
-					   evt[t] = params.detail[t];
-				   }
-				}*/
 				evt.detail = params.detail;
 			}	
 		}
@@ -339,71 +285,14 @@ Function.prototype.bind = Function.prototype.bind || function(cxt /* ,args... */
 	  }
 })(wind, wind.document);
 
-Object.create = Object.create || function(o, props){
-	'use strict';
-
-	if (o === null || !(o instanceof Object)) {
-		throw TypeError("Object.create called on null or non-object argument");
-	}
-
-	var prop;
-	function F(){}
-	F.prototype = o;
-
-	if(typeof props === "object"){
-		for(prop in props){
-			if(Hop.call(props, prop)){
-				F[prop] = props[prop];
-			}
-		}
-	}
-
-	return new F();
-};
-
-Object.keys = Object.keys || function (fu){
-    
-    'use strict';
-
-    if (typeof (fu) != 'object' 
-    	&& typeof (fu) != 'function') {
-           return;
-    }
-
-    var j = [];
-    for (var k in fuc) {
-          if(Hop.call(fuc, k)) {
-                j.push(k)
-          }
-    }
-    var l = !ob.propertyIsEnumerable('toString'), 
-	    m = [
-	    		'toString', 
-	    		'toLocaleString', 
-	    		'valueOf', 
-	    		'hasOwnProperty', 
-	    		'isPrototypeOf', 
-	    		'prototypeIsEnumerable', 
-	    		'constructor'
-	    	];
-
-    if(l) {
-         for (var n = 0; n < m.length; n++) {
-                var o = m[n];
-                if(Hop.call(fuc, o)) {
-                     j.push(o);
-                }
-         }
-    }
-    return j;
-};
-
 // Store constructor
 var Store = (function(){
 
 	var requirementTypes = ['graph-ql', 'rest'];
 
 	var serviceRequirementsMap = {};
+
+	var dependentStores = {};
 	
 	return function(title){
 
@@ -432,6 +321,11 @@ var Store = (function(){
 
 			return null;
 
+		};
+
+		this.waitsFor = function(){
+
+			([]).push.apply(dependentStores, Slc.call(arguments));
 		};
 
 		this.toString = function(){
@@ -829,7 +723,7 @@ Futures = function(){
 
 	    }else{
 	    	
-	    	newStoreState = fn.call(queueing, action, area.get());
+	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$history[0]));
 
 	    	coverageNotifier.$$historyLocation = null;
 
@@ -904,7 +798,7 @@ Futures = function(){
 		return String(Math.random()).replace('.','x_').substring(0, 11);
 	},
 	  
-    	getNormalized = function(val){
+	getNormalized = function(val){
 
 	   	if(isNullOrUndefined(val) || val === "null")
 	   		 return null;
@@ -924,7 +818,6 @@ Futures = function(){
 		try{
 			return JSON.stringify(val);
 		}catch(e){
-
 			return String(val);
 		}
 	},
@@ -941,9 +834,9 @@ Futures = function(){
 		fireWatchers(appState, true);
 	},
 	   
-    	getAppState = function(){
+	getAppState = function(){
 
-		var appStateData = {}, key, indexStart, indexEnd, values, _data;		
+		var appStateData = {}, observer, key, indexStart, indexEnd, values, _data;		
 		
 	    	if(('key' in sessStore) 
 		   			&& (typeof sessStore.key == 'function')){
@@ -954,10 +847,16 @@ Futures = function(){
 					_data = sessStore.getItem(key);
 					
 					if(!_data){
-						;
+						observer = observers[key];
+						if(!!observer 
+							&& observer.$$history.length){
+							_data = setNormalized(observer.$$history[0]);
+						}else{
+							_data = null;
+						}
 					}
 
-					appStateData[key] = getNormalized(_data) || null;
+					appStateData[key] = getNormalized(_data);
 				}
     		}else{
 			
@@ -976,16 +875,22 @@ Futures = function(){
 
 						_data = values[1];
 
+					}else {
+						observer = observers[key];
+						if(!!observer
+							&& observer.$$history.length){
+							_data = setNormalized(observer.$$history[0]);
+						}
 					}
 
-					appStateData[key] = getNormalized(_data) || null;
+					appStateData[key] = getNormalized(_data);
 				}
 			}
 
 		return appStateData;
 	},
 	   
-    	Area = function(key){
+	Area = function(key){
 
 		this.put = function(value){
 			
@@ -1358,7 +1263,7 @@ Futures = function(){
 				observer.$$history = [(
 						!!defaultStoreContainer ? 
 						defaultStoreContainer :
-							 []
+							 null
 				)];
 				observer.$$historyIndex = 0;
 				observers[title] = observer;
@@ -1710,7 +1615,7 @@ Futures = function(){
 
 			return function(){
 
-				var regFunc, area, argument = arguments.length? arguments[0] : null;
+				var regFunc, area, argument = arguments.length ? arguments[0] : null;
 
 				if(method == 'setChangeListener'){
 
@@ -1724,19 +1629,22 @@ Futures = function(){
 
 				if(method == 'getState'){
 
-					var value;
-					area = new Area(this.getTitle());
+					var title = this.getTitle(), value;
+					area = new Area(title);
 					value = area.get();
 					area = null;
 
-					if(value === area){
+					if(value === null){
 
-						regFunc = dispatcher.getRegistration(this.getTitle());
+						regFunc = dispatcher.getRegistration(title);
 
-						return (regFunc.$$history.length && regFunc.$$history[0]);
+						return (regFunc.$$history.length ? regFunc.$$history[0] : null);
+					}else{
+
+						value = value[title];
 					}
 
-					return  (typeof argument == 'string' && (argument in value)) ? value[argument] : value;
+					return  (typeof argument === 'string' && (argument in value)) ? value[argument] : value;
 				}
 
 				if(method == 'destroy'){

@@ -122,70 +122,98 @@ const Values = {
       },
       isOfType(type, value) {
 
-              var type = type.toLowerCase(); // hoisting
-
-              if(typeof type === 'function'){
-
+            if(typeof type === 'function'){
+                
                 return type(value);
-              }
+            }
 
-              else if(typeof type === 'string'
-                    && (type in this.typesMap)){
+            else if(typeof type === 'string'
+                        && (type in this.typesMap)){
+                type = type.toLowerCase(); // hoisting
+
                 return (/^string|function$/.test(typeof value)) 
-                      || (Object(value) instanceof this.typesMap[type]);
-              }
+                            || (Object(value) instanceof this.typesMap[type]);
+            }
 
-              return false;
+            return false;
       }
 };
 
 
 // Store Constructor
-const Store = ((() => {
+const Store = (function(){
 
-	let requirementTypes = ['graph-ql', 'rest'];
+	var requirementTypes = ['graph-ql', 'rest'];
 
-	let serviceRequirementsMap = {};
+	var serviceRequirementsMap = {};
+
+	var dependentStores = {};
 	
 	return function(title){
 
-		const that = this;
+		var that = this;
 
-		this.getTitle = () => title;
+		this.getTitle = function(){
 
-		this.toJSON = () => ({
-            title
-    });
+			return title;
+		};
 
-		this.makeTrait = function(callback, ...argsLeft){
+		this.toJSON = function(){
 
-          if(typeof callback === 'function'){
+			return {
+                title
+            };
+		};
 
-                argsLeft.unshift(that);
+		this.makeTrait = function(callback){
 
-                return callback(...argsLeft);
-          }
+			var argsLeft = Slc.call(arguments, 1);
 
-			    return null;
+			if(typeof callback === 'function'){
+
+				argsLeft.unshift(this);
+
+				return callback.apply(null, argsLeft);
+			}
+
+			return null;
 
 		};
 
-		this.toString = () => "[object RadixxStore]";
+		this.waitsFor = function(){
+
+			([]).push.apply(dependentStores, Slc.call(arguments));
+		};
+
+		this.toString = function(){
+
+			return "[object RadixxStore]";
+		};
 	}	
 
-})());
+}());
 
 // Action constructor
-const  Action = ((() => function(id){
+const  Action = (function(id){
 
-    this.getId = () => id;
+    this.getId = function(){
 
-    this.toJSON = () => ({
-        id
-    });
+        return id;
+    }
 
-    this.toString = () => "[object RadixxActionCreator]";
-})());
+    this.toJSON = function(){
+
+        return {
+            id
+        }
+    };
+
+    this.toString = function(){
+
+        return "[object RadixxActionCreator]";
+    };
+
+}());
 
 
 export { Values, Store, Action, $createBeforeTearDownCallback, $createTearDownCallback }

@@ -1,6 +1,6 @@
  /*!
   * @lib: ngRadixx
-  * @version: 0.1.2
+  * @version: 0.1.3
   * @author: Ifeora Okechukwu
   * @created: 30/12/2016
   *

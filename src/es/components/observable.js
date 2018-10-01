@@ -1,4 +1,4 @@
-import { wind, isNullOrUndefined } from '../utils/routines/basics.js';
+import { wind, each, isNullOrUndefined } from '../utils/routines/basics.js';
 import { Dispatcher, Area } from './dispatcher.js';
 import { Values } from '../utils/routines/extras.js';
 
@@ -9,7 +9,7 @@ import { Values } from '../utils/routines/extras.js';
     
 		};
 
-		const getInstance = () => {
+		const getInstance = function(){
 			
 			if($instance === null){
 
@@ -87,7 +87,7 @@ import { Values } from '../utils/routines/extras.js';
 			return function(){
                 let regFunc;
                 let area;
-                const argument = arguments.length? arguments[0] : null;
+                const argument = arguments.length ? arguments[0] : null;
 
                 if(method == 'setChangeListener'){
 
@@ -101,19 +101,22 @@ import { Values } from '../utils/routines/extras.js';
 
                 if(method == 'getState'){
 
-					let value;
-					area = new Area(this.getTitle());
+					var title = this.getTitle(), value;
+					area = new Area(title);
 					value = area.get();
 					area = null;
 
-					if(value === area){
+					if(value === null){
 
-						regFunc = dispatcher.getRegistration(this.getTitle());
+						regFunc = dispatcher.getRegistration(title);
 
-						return (regFunc.$$history.length && regFunc.$$history[0]);
+						return (regFunc.$$history.length ? regFunc.$$history[0] : null);
+					}else{
+
+						value = value[title];
 					}
 
-					return  (typeof argument == 'string' && (argument in value)) ? value[argument] : value;
+					return  (typeof argument === 'string' && (argument in value)) ? value[argument] : value;
 				}
 
                 if(method == 'destroy'){
