@@ -12,25 +12,13 @@
   */
 
 
- !function(root, factory){
-	 'use strict';
-	 
-  if(typeof exports === 'object' && typeof module !== 'undefined'){
-    module.exports =  factory(root);
-  }else if(typeof define === 'function' && define.amd){
-    define("Radixx", [], function(){ return factory(root); });
-  }else if(typeof exports === 'object'){
-    exports["Radixx"] = factory(root);
-  }else{
-    root["Radixx"] = factory(root);
-  }
+// 'use strict';  	
 
- }((('undefined' !== typeof process &&
-    '[object process]' === ({}).toString.call(process)) ||
-  ('undefined' !== typeof navigator && navigator.product === 'ReactNative')
-? global : typeof window !== "undefined" ? window : self), function(wind, undefined){ 
+/*@@ 
+ 	CommonJS module
+*/
 
-// 'use strict';  Can't [use strict] mode cos i wish to use {void 0}/{arguments.callee} for checks	
+var wind = window || {};
 
 var Hop = ({}).hasOwnProperty,
 
@@ -2072,6 +2060,6 @@ Hub.prototype.configure = function(config){
 
 };
 
-return (new Hub());
+module.exports = new Hub();
 
-});
+
