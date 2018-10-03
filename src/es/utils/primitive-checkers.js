@@ -20,9 +20,11 @@ const Payload = {
                      },
                      "numeric":{
                         Int(value) {
+                            
                             return wind.isFinite(value) && (value === wind.parseInt(value))
                         },
                         Float(value) {
+
                             return wind.isFinite(value) && (value === wind.parseFloat(value))
                         }
                      },

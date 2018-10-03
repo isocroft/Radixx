@@ -1,7 +1,7 @@
 import * as observable from './components/observable.js';
 import { Action, Store } from './utils/routines/extras.js';
-import Helpers from './utils/helpers.js';
-import Payload from './utils/primitive-checkers.js'
+import { Helpers } from './utils/helpers.js';
+import { Payload } from './utils/primitive-checkers.js'
 
  /*!
   * @lib: Radixx

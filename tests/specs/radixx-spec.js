@@ -17,7 +17,7 @@ describe("The Radixx Flux Library :", function() {
             		},
             		'addItem':{
             			type:'ADD_ITEM',
-            			actionDefinition:Radixx.Payload.type.object
+            			actionDefinition:[Radixx.Payload.type.any] // , Radixx.Payload.type.object
             		}
             });
 

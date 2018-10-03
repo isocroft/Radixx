@@ -15,7 +15,7 @@
   ],
   "scripts": {
     "lint": "jshint src tests",
-    "build": "./node_modules/.bin/webpack --progress --colors --env dev && ./node_modules/.bin/webpack --progress --colors --env build && npm run test",
+    "build": "./node_modules/.bin/webpack --progress --colors --env build && npm run test",
     "dev": "./node_modules/.bin/webpack --progress --colors --watch --env dev",
     "benchmark": "node benchmark.js",
     "test": "karma start radixx.conf.js --single-run"
@@ -61,7 +61,7 @@
   "engines": {
     "node": "^6.14.0 || ^8.10.0 || >= 9.10.0"
   },
-  "main": "./src/radixx.js",
+  "main": "./dist/radixx.cjs.min.js",
   "browser": "./dist/radixx.umd.js",
   "module": "./src/es/index.js",
   "unpkg": "./dist/radixx.umd.min.js",

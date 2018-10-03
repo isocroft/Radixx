@@ -1,6 +1,6 @@
 import { wind } from './routines/basics.js';
 
-export const Helpers = {
+const Helpers = {
         isEqual(former, latter) {
                       if (former === latter) {
                         return true;
@@ -27,3 +27,5 @@ export const Helpers = {
                       }
         }
 };
+
+export { Helpers }

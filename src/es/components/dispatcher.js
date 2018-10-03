@@ -49,6 +49,10 @@ let config = null;
 
 };
 
+const dispatchRegistry = {
+    
+};
+
 const getAppOriginForPersist = cfg => String(wind.location.origin + (cfg.localHostDev ? ':'+wind.document.documentElement.id : ''));
 
 const generateTag = origin => {
@@ -1011,6 +1015,21 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	                compactedFunc.apply(_hasMiddleware ? adjoiner : null, [action, getAppState()]);
 
 	            }
+		}
+
+		setActionsRegistry(regId){
+
+			dispatchRegistry[regId] = {actionTypes:[]};
+		}
+
+		addToActonsRegistry(id, vector){
+
+			if(! isNullOrUndefined(dispatchRegistry[id])){
+					dispatchRegistry[id].actionTypes.push(
+						vector
+					);
+			}
+
 		}
 
 		unregister(title) {

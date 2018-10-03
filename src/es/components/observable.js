@@ -1,13 +1,9 @@
-import { wind, each, isNullOrUndefined } from '../utils/routines/basics.js';
+import { wind, each, Hop, isNullOrUndefined } from '../utils/routines/basics.js';
 import { Dispatcher, Area } from './dispatcher.js';
 import { Values } from '../utils/routines/extras.js';
 
 
 		let $instance = null;
-
-		const dispatchRegistry = {
-    
-		};
 
 		const getInstance = function(){
 			
@@ -63,22 +59,6 @@ import { Values } from '../utils/routines/extras.js';
 			};
 
             next();
-        };
-
-		const setActionVectors = function(object, vectors) {
-
-            const _proto = getObjectPrototype(object);
-            const dispatcher = getInstance();
-            let vector = null;
-
-            for(const creator in vectors){
-				if(Hop.call(vectors, creator)){
-				     vector = vectors[creator];	
-				     _proto[creator] = createActionInterface(dispatcher, vector);
-				}
-			}
-
-            return object;
         };
 
 		const createStoreInterface = function(dispatcher, method) {
@@ -213,11 +193,7 @@ import { Values } from '../utils/routines/extras.js';
 				
 				let typesBitMask = 0;
 
-				if(!isNullOrUndefined(dispatchRegistry[id])){
-					dispatchRegistry[id].actionTypes.push(
-						vector
-					);
-				}
+				dispatcher.addToActonsRegistry(id, vector);
 				
 				if(vector.actionDefinition instanceof Array){
 					
@@ -281,6 +257,8 @@ import { Values } from '../utils/routines/extras.js';
 
 		const purgePersistStore = function() {
 
+			const dispatcher = getInstance();
+
 			dispatcher.deletePersistenceTagAndData();
 
 		};
@@ -289,7 +267,9 @@ import { Values } from '../utils/routines/extras.js';
 			/* creates hex value e.g. '0ef352ab287f1' */
 			const regId = Math.random().toString(16).substr(2, 13); 
 	
-			dispatchRegistry[regId] = {actionTypes:[]};
+			const dispatcher = getInstance();
+
+			dispatcher.setActionsRegistry(regId);
 
 			return regId;
 
@@ -298,10 +278,9 @@ import { Values } from '../utils/routines/extras.js';
 		const makeAggregator = function() {
 
 				return {
-					notifyAllStores() {
-						/*
-						*/
-					}
+					query:`graphql {
+						
+					}`
 				};
 		};
 
@@ -323,6 +302,22 @@ import { Values } from '../utils/routines/extras.js';
 			}
 
 		};
+
+		const setActionVectors = function(object, vectors) {
+
+            const _proto = getObjectPrototype(object);
+            const dispatcher = getInstance();
+            let vector = null;
+
+            for(const creator in vectors){
+				if(Hop.call(vectors, creator)){
+				     vector = vectors[creator];	
+				     _proto[creator] = createActionInterface(dispatcher, vector);
+				}
+			}
+
+            return object;
+        };
 
 		const setStoreObserver = function(object, regFunc, defaultStateObj) {
             
@@ -353,10 +348,10 @@ import { Values } from '../utils/routines/extras.js';
         	];
 
             for(let c=0; c < methods.length; c++){
-
 				method = methods[c];
+
 				_proto[method] = createStoreInterface(dispatcher, method);
 			}
 		};
 
-export { eachStore, makeAggregator, registerAction,setupShutdownCallback, mergeConfig, purgePersistStore, setStoreObserver, watchDispatcher, isAppStateAutoRehydrated, createStoreInterface, createActionInterface }
+export { eachStore, makeAggregator, registerAction, setupShutdownCallback, mergeConfig, purgePersistStore, setMiddlewareCallback, setActionVectors, setStoreObserver, watchDispatcher, isAppStateAutoRehydrated }

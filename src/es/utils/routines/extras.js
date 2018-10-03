@@ -194,24 +194,27 @@ const Store = (function(){
 }());
 
 // Action constructor
-const  Action = (function(id){
+const  Action = (function(){
 
-    this.getId = function(){
+    return function(id){
 
-        return id;
+            this.getId = function(){
+
+                return id;
+            }
+
+            this.toJSON = function(){
+
+                return {
+                    id
+                }
+            };
+
+            this.toString = function(){
+
+                return "[object RadixxActionCreator]";
+            };
     }
-
-    this.toJSON = function(){
-
-        return {
-            id
-        }
-    };
-
-    this.toString = function(){
-
-        return "[object RadixxActionCreator]";
-    };
 
 }());
 

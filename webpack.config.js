@@ -10,10 +10,12 @@ if (env === 'build') {
 
   	outputFile = libraryName + '.umd.min.js';
   	mode = 'production';
+
 } else if(env === 'dev') {
 
   	outputFile = libraryName + '.umd.js';
 	mode = 'development';
+
 }
 
 module.exports = {
@@ -22,7 +24,7 @@ module.exports = {
 	output:{
 	    	path: path.resolve(__dirname, './dist'),
 	    	filename:outputFile,
-	    	library: libraryName,
+	    	library: (libraryName[0].toUpperCase() + libraryName.substring(1)),
 	    	libraryTarget: 'umd',
 	    	umdNamedDefine: true
 	},
