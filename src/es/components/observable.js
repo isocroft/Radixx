@@ -33,32 +33,9 @@ import { Values } from '../utils/routines/extras.js';
 
 		const eachStore = function(fn, extractor, storeArray) {
 
-            each(storeKeys, extractor.bind((storeArray = []), stores));
+            	const dispatcher = getInstance();
 
-            let callable = fn;
-            let prevIndex = storeArray.length - 1;
-
-            const next = () => {
-			
-				let returnVal;
-
-				if(prevIndex >= 0){	
-					returnVal = Boolean(
-						callable.call(
-								null, 
-								storeArray[prevIndex--], 
-								next
-						)
-					);
-				}else{
-					callable = !0;
-					returnVal = callable;
-				}
-
-				return returnVal;
-			};
-
-            next();
+            	return dispatcher.iterateOnStore(fn, extractor, storeArray);
         };
 
 		const createStoreInterface = function(dispatcher, method) {
@@ -90,13 +67,20 @@ import { Values } from '../utils/routines/extras.js';
 
 						regFunc = dispatcher.getRegistration(title);
 
-						return (regFunc.$$history.length ? regFunc.$$history[0] : null);
-					}else{
+						value = (regFunc.$$history.length ? regFunc.$$history[0] : null);
 
-						value = value[title];
+					}else if(typeof argument === 'string'){
+
+						if(value instanceof Object){
+
+							if(Hop.call(value, argument)){
+
+								value = value[argument];
+							}
+						}
 					}
 
-					return  (typeof argument === 'string' && (argument in value)) ? value[argument] : value;
+					return value;
 				}
 
                 if(method == 'destroy'){

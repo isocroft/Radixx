@@ -711,9 +711,7 @@ Futures = function(){
 
 	    }else{
 	    	
-	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$history[0]));
-
-	    	coverageNotifier.$$historyLocation = null;
+	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$initData));
 
 	    }
 
@@ -735,6 +733,8 @@ Futures = function(){
     				;
 	    	}
 
+	    	coverageNotifier.$$withAction = true;
+
 	    	triggerEvt(
 					win.document, 
 					'storesignal', 
@@ -749,13 +749,13 @@ Futures = function(){
 					win
 			);
 
-	    	coverageNotifier.$$withAction = true;
-
 		    // add the new state to the history list and increment
 		    // the index to match in place
 		    len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
 		    
 		    fn.$$historyIndex++;
+
+		    coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 		    if(fn.$$history.length > 21){ // can't undo/redo (either way) more than 21 moves at any time
 
@@ -763,6 +763,8 @@ Futures = function(){
 		    }
 
 	    }else{
+
+	    	coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 	    	return newStoreState;
     	}
@@ -838,13 +840,13 @@ Futures = function(){
 						observer = observers[key];
 						if(!!observer 
 							&& observer.$$history.length){
-							_data = setNormalized(observer.$$history[0]);
+							_data = observer.$$history[0];
 						}else{
 							_data = null;
 						}
 					}
 
-					appStateData[key] = getNormalized(_data);
+					appStateData[key] = (typeof _data === 'string' ? getNormalized(_data) : _data);
 				}
     		}else{
 			
@@ -867,11 +869,13 @@ Futures = function(){
 						observer = observers[key];
 						if(!!observer
 							&& observer.$$history.length){
-							_data = setNormalized(observer.$$history[0]);
+							_data = observer.$$history[0];
+						}else{
+							_data = null;
 						}
 					}
 
-					appStateData[key] = getNormalized(_data);
+					appStateData[key] = (typeof _data === 'string' ? getNormalized(_data) : _data);
 				}
 			}
 
@@ -999,12 +1003,16 @@ Futures = function(){
 		return this;
 	},
 
-	getCurrentActionOnStack = function(){
+	getActionOnStack = function(index){
 
-		var actionStack = operationOnStoreSignal.$$redoActionsStack;
+		var actionsStack = operationOnStoreSignal.$$redoActionsStack;
 
-		if(actionStack.lenth){
-			return actionStack[actionStack.length - 1];
+		if(actionsStack.length){
+			if(typeof index !== 'number'){
+				return actionsStack[actionsStack.length - 1];
+			}else{
+				return actionsStack[index];
+			}
 		}
 
 		return null;
@@ -1015,8 +1023,10 @@ Futures = function(){
 		var currentAction = null, _tag = coverageNotifier.$$tag;
 
 		if(arguments.callee.$$withAction === true){
-			currentAction = getCurrentActionOnStack();
+			currentAction = getActionOnStack();
 			arguments.callee.$$withAction = null;
+		}else{
+			currentAction = getActionOnStack(coverageNotifier.$$historyLocation);
 		}
 	
 		if(!isNullOrUndefined(_tag)
@@ -1626,13 +1636,20 @@ Futures = function(){
 
 						regFunc = dispatcher.getRegistration(title);
 
-						return (regFunc.$$history.length ? regFunc.$$history[0] : null);
-					}else{
+						value = (regFunc.$$history.length ? regFunc.$$history[0] : null);
 
-						value = value[title];
+					}else if(typeof argument === 'string'){
+
+						if(value instanceof Object){
+
+							if(Hop.call(value, argument)){
+
+								value = value[argument];
+							}
+						}
 					}
 
-					return  (typeof argument === 'string' && (argument in value)) ? value[argument] : value;
+					return value;
 				}
 
 				if(method == 'destroy'){

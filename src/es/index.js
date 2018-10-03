@@ -17,7 +17,7 @@ import { Payload } from './utils/primitive-checkers.js'
   */
 
 
-function toString(){
+const toString = function(){
 
     return "[object RadixxHub]";
 }
@@ -61,11 +61,6 @@ const eachStore = function(callback){
     }, null);
 }
 
-let _hub = {
-    eachStore
-};
-
-
 const attachMiddleware = function(callback) {
 
     return observable.setMiddlewareCallback(function(...args){
@@ -88,6 +83,19 @@ const onDispatch = function(handler){
     }
 }
 
+const requestAggregator = function() {
+
+    return observable.makeAggregator();
+}
+
+let _hub = {
+    eachStore,
+    onDispatch,
+    isAppStateAutoRehydrated,
+    purgePersistentStorage,
+    toString
+};
+
 const configure = function(config) {
     
     return observable.mergeConfig(config, _hub);
@@ -102,11 +110,6 @@ const onShutdown = function(handler){
         }, _hub);
     }
 
-}
-
-const requestAggregator = function() {
-
-    return observable.makeAggregator();
 }
 
 export { Helpers, Payload, makeStore, makeActionCreators, purgePersistentStorage, isAppStateAutoRehydrated, requestAggregator, configure, eachStore, attachMiddleware, onDispatch, onShutdown, toString }

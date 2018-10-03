@@ -47,7 +47,7 @@ const $createBeforeTearDownCallback = config => e => {
     // console.log('Node: '+ lastActivatedNode);
 
     __timeOutCallback.lock = __hasDeactivated = true;
-    beforeUnloadTimer = wind.setTimeout(__timeOutCallback, 0);
+    let beforeUnloadTimer = wind.setTimeout(__timeOutCallback, 0);
 
     if(isLogoff){ // IE/Firefox/Chrome 34+
         if(!!~e.type.indexOf('beforeunload')){

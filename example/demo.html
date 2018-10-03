@@ -2,7 +2,11 @@
 <html>
 <head>
 	<title>Radixx Flux Library - Example App</title>
-	<script src="../dist/radixx.min.js"></script>
+
+	<meta charset="utf-8">
+
+	<script src="../dist/radixx.umd.min.js"></script>
+
 	<script type="text/javascript">
 	;(function(w, r){
 
@@ -31,7 +35,7 @@
 			},
 			saveTodo:{
 				type:'SAVE_TODO',
-				actionDefinition:Radixx.Payload.type.any
+				actionDefinition:[Radixx.Payload.type.any, Radixx.Payload.type.nullable]
 			}
 		});
 
@@ -66,13 +70,27 @@
 		/* there's a strict structure to how to define a store callback - MUST always return area.put(); - as calling the put() method this way triggeres all change listeners */
 		w.store = r.makeStore('todos', function(action, state){
 
-						var todos = state; 
+						var todos = state.tasks; 
 
 						switch(action.actionType){
 							case 'LOAD_TODOS':
 								// action.actionData MUST be an array as seen
 								// from the action.loadTodos([ ... ]) call below
 								todos = action.actionData;
+
+								/* 
+									setting up the format the state data should be stored before
+									it is put in storage.
+								*/ 
+								todos.toJSON = function(){
+									return this.map(function(val){
+										var todoTimeToDueDate = (new Date*1);
+										return {
+												is_overdue:todoTimeToDueDate > val.due_date_timestamp,
+												todo:val
+										};
+									});
+								};
 							break;
 							case 'SAVE_TODO':
 								// add an object into the todo
@@ -84,13 +102,13 @@
 						}
 
 						return todos;
-		}, []);
+		}, {tasks:[]});
 
 		// setup a function to listen for change to the store
 		store.setChangeListener(function(actionType, actionKey){
 			
 			// the this reference in here is the store itself
-			alert("STORE AFFECTED: " + this.getTitle());
+			console.log("STORE AFFECTED: " + this.getTitle() + ": [" + actionType + ", " + actionKey + "]");
 		});
 
 		// do something with each store created
@@ -108,20 +126,12 @@
 
 				switch(action.actionType){
 					case 'LOAD_TODOS':
-						todos = action.actionData;
-						/* 
-							setting up the format the state data should be stored before
-							it is put in storage.
-						*/ 
-						todos.toJSON = function(){
-							return this.map(function(val){
-								var todoTimeToDueDate = (new Date*1);
-								return {
-										is_overdue:todoTimeToDueDate > val.due_date_timestamp,
-										todo:val
-								};
-							});
-						};
+						todos.tasks = action.actionData;
+						
+					break;
+					case 'SAVE_TODO':
+						// add an object into the todo
+						todos.tasks.push(action.actionData);
 					break;
 					default:
 						return null;
@@ -134,6 +144,9 @@
 	</script>
 </head>
 <body>
+	<p>
+	<input type="text" tabindex="-1" placeholder="Enter your Todo..." id="todo_text">&nbsp;&nbsp;<button type="button" disabled="disabled" id="todo_submit">ADD TODO</button>
+	</p>
 	<ul id="todos"></ul>
 	<button type="button" disabled="disabled" id="undo-btn">UNDO</button>
 
@@ -141,7 +154,7 @@
 		;(function(w, d){
 
 			// calling an action - an action triggers changes in the store (by extension the application state)
-			action_creators.loadTodos([
+			w.action_creators.loadTodos([
 				{
 					text:'Buy flowers for my wife', 
 					completed:true,
@@ -156,22 +169,25 @@
 
 			var mount_point = d.getElementById("todos");
 			var button = d.getElementById("undo-btn");
+			var _submit = d.getElementById("todo_submit");
+			var _text = d.getElementById("todo_text");
 			
 			function render(m){
 				var list = w.store.getState();
+
 				var li = null;
 
-				if(list.length == 0){
+				if(list.length === 0){
 					m.innerHTML = "";
 					return;
 				}
 
-				list.forEach(function(item, i){
+				list.tasks.forEach(function(item, i){
 					li = d.createElement("li");
 					li.setAttribute("data-key", i);
-					li.setAttribute("data-todo-overdue", item.is_overdue);
-					li.setAttribute("data-todo-done", String(item.todo.completed));
-					li.appendChild(d.createTextNode(item.todo.text));
+					li.setAttribute("data-todo-overdue", String(item.due_date_timestamp));
+					li.setAttribute("data-todo-done", String(item.completed));
+					li.appendChild(d.createTextNode(item.text));
 					m.appendChild(li);
 				});
 			}
@@ -181,8 +197,33 @@
 				// undo application state changes
 				w.store.undo();
 				this.disabled = !w.store.canUndo();
+				mount_point.innerHTML = "";
 				render(mount_point);
 			};
+
+			_submit.onclick = function(e){
+				var date = new Date;
+				date.setHours(date.getHours() + 2);
+
+				w.action_creators.saveTodo({
+					text:_text.value,
+					completed:false,
+					due_date_timestamp:date.getTime()
+				});
+
+				button.disabled = !w.store.canUndo();
+
+				mount_point.innerHTML = "";
+				render(mount_point);
+			};
+
+			_text.oninput = function(e){
+				_submit.disabled = !e.target.value.length;
+			};
+
+			w.store.setChangeListener(function(){
+				_text.value = "";
+			});
 
 			render(mount_point);
 

@@ -341,8 +341,6 @@ var _createClass = function () { function defineProperties(target, props) { for 
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var _arguments = arguments;
-
 var _basics = __webpack_require__(/*! ../utils/routines/basics.js */ "./src/es/utils/routines/basics.js");
 
 var _extras = __webpack_require__(/*! ../utils/routines/extras.js */ "./src/es/utils/routines/extras.js");
@@ -466,12 +464,10 @@ var operationOnStoreSignal = function operationOnStoreSignal(fn, queueing, area,
 		coverageNotifier.$$historyLocation = fn.$$historyIndex;
 	} else {
 
-		newStoreState = fn.call(queueing, action, area.get() || fn.$$history[0]);
-
-		coverageNotifier.$$historyLocation = null;
+		newStoreState = fn.call(queueing, action, area.get() || fn.$$initData);
 	}
 
-	if (typeof newStoreState == 'boolean' || newStoreState == undefined) {
+	if (typeof newStoreState === 'boolean' || (0, _basics.isNullOrUndefined)(newStoreState)) {
 
 		throw new TypeError("Radixx: Application State unavailable after signal to Dispatcher");
 
@@ -488,6 +484,8 @@ var operationOnStoreSignal = function operationOnStoreSignal(fn, queueing, area,
 			;
 		}
 
+		coverageNotifier.$$withAction = true;
+
 		triggerEvt(_basics.wind.document, 'storesignal', {
 			url: _basics.wind.location.href,
 			key: _key,
@@ -497,13 +495,13 @@ var operationOnStoreSignal = function operationOnStoreSignal(fn, queueing, area,
 			type: action.actionType
 		}, _basics.wind);
 
-		coverageNotifier.$$withAction = true;
-
 		// add the new state to the history list and increment
 		// the index to match in place
 		len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
 
 		fn.$$historyIndex++;
+
+		coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 		if (fn.$$history.length > 21) {
 			// can't undo/redo (either way) more than 21 moves at any time
@@ -511,6 +509,8 @@ var operationOnStoreSignal = function operationOnStoreSignal(fn, queueing, area,
 			fn.$$history.unshift();
 		}
 	} else {
+
+		coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 		return newStoreState;
 	}
@@ -539,12 +539,16 @@ var setNormalized = function setNormalized(val) {
 	}
 };
 
-var getCurrentActionOnStack = function getCurrentActionOnStack() {
+var getActionOnStack = function getActionOnStack(index) {
 
-	var actionStack = operationOnStoreSignal.$$redoActionsStack;
+	var actionsStack = operationOnStoreSignal.$$redoActionsStack;
 
-	if (actionStack.lenth) {
-		return actionStack[actionStack.length - 1];
+	if (actionsStack.length) {
+		if (typeof index !== 'number') {
+			return actionsStack[actionsStack.length - 1];
+		} else {
+			return actionsStack[index];
+		}
 	}
 
 	return null;
@@ -556,9 +560,11 @@ var coverageNotifier = function coverageNotifier(appState) {
 
 	var _tag = coverageNotifier.$$tag;
 
-	if (_arguments.callee.$$withAction === true) {
-		currentAction = getCurrentActionOnStack();
-		_arguments.callee.$$withAction = null;
+	if (coverageNotifier.$$withAction === true) {
+		currentAction = getActionOnStack();
+		coverageNotifier.$$withAction = null;
+	} else {
+		currentAction = getActionOnStack(coverageNotifier.$$historyLocation);
 	}
 
 	if (!(0, _basics.isNullOrUndefined)(_tag) && persistStore !== null) {
@@ -566,11 +572,11 @@ var coverageNotifier = function coverageNotifier(appState) {
 		persistStore.setItem(_tag, setNormalized({
 			state: appState,
 			action: currentAction,
-			title: _arguments.callee.$$currentStoreTitle,
-			historyLoc: _arguments.callee.$$historyLocation
+			title: coverageNotifier.$$currentStoreTitle,
+			historyLoc: coverageNotifier.$$historyLocation
 		}));
 
-		_arguments.callee.$$historyLocation = null;
+		coverageNotifier.$$historyLocation = null;
 	}
 };
 
@@ -620,16 +626,17 @@ var getAppState = function getAppState() {
 			key = sessStore.key(i);
 			_data = sessStore.getItem(key);
 
-			if (!_data) {
+			if (typeof _data !== 'string' || _data.length === 0) {
 				observer = observers[key];
 				if (!!observer && observer.$$history.length) {
-					_data = setNormalized(observer.$$history[0]);
+					_data = observer.$$history[0];
 				} else {
 					_data = null;
 				}
 			}
 
-			appStateData[key] = getNormalized(_data);
+			appStateData[key] = typeof _data === 'string' ? getNormalized(_data) : _data;
+			console.log("hhhhhhhhhhhhhhhhh::::::::::", appStateData, ">>>>> ", getNormalized(_data));
 		}
 	} else {
 
@@ -649,15 +656,41 @@ var getAppState = function getAppState() {
 			} else {
 				observer = observers[key];
 				if (!!observer && observer.$$history.length) {
-					_data = setNormalized(observer.$$history[0]);
+					_data = observer.$$history[0];
+				} else {
+					_data = null;
 				}
 			}
 
-			appStateData[key] = getNormalized(_data);
+			appStateData[key] = typeof _data === 'string' ? getNormalized(_data) : _data;
 		}
 	}
 
 	return appStateData;
+};
+
+var eachStore = function eachStore(fn, extractor, storeArray) {
+
+	(0, _basics.each)(storeKeys, extractor.bind(storeArray = [], stores));
+
+	var callable = fn;
+	var prevIndex = storeArray.length - 1;
+
+	var next = function next() {
+
+		var returnVal = void 0;
+
+		if (prevIndex >= 0) {
+			returnVal = Boolean(callable.call(null, storeArray[prevIndex--], next));
+		} else {
+			callable = !0;
+			returnVal = callable;
+		}
+
+		return returnVal;
+	};
+
+	next();
 };
 
 var handlePromises = function handlePromises() {
@@ -681,8 +714,8 @@ var handlePromises = function handlePromises() {
 
 var enforceCoverage = function enforceCoverage(e) {
 
-	var _origin = _arguments.callee.$$origin;
-	var _tag = _arguments.callee.$$tag;
+	var _origin = enforceCoverage.$$origin;
+	var _tag = enforceCoverage.$$tag;
 	var _action = null;
 	var _state = null;
 	var _title = null;
@@ -771,16 +804,11 @@ function CEvent(event, params) {
 	} catch (e) {
 		evt = d.createEventObject(w.event);
 		evt.cancelBubble = !params.bubbles;
+
 		evt.returnValue = !params.cancelable;
 
 		if (_typeof(params.detail) === "object") {
-			// set expando properties on event object
 
-			/*for(t in params.detail){
-      if((({}).hasOwnProperty.call(params.detail, t))){
-        evt[t] = params.detail[t];
-      }
-   }*/
 			evt.detail = params.detail;
 		}
 	}
@@ -823,7 +851,7 @@ function setupConfigSettings(config, hub) {
 			data = getNormalized(persistStore.getItem(enforceCoverage.$$tag));
 		}
 
-		if (data instanceof Object && data.state) {
+		if (data && data instanceof Object && data.state) {
 			setAppState(data.state);
 			this.updateAutoRehydrationState();
 		}
@@ -858,8 +886,8 @@ var Area = function Area(key) {
 
 		/* 
   	In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
-  	we need to fix this by using IE proprietary methods 
-  	See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
+  	we need to fix this by using IE proprietary methods
+  			See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
   */
 
 		var indexStart = void 0;
@@ -1224,13 +1252,20 @@ var Dispatcher = function () {
 			}, operationOnStoreSignal);
 		}
 	}, {
+		key: 'iterateOnStore',
+		value: function iterateOnStore() {
+
+			return eachStore.apply(undefined, arguments);
+		}
+	}, {
 		key: 'signal',
 		value: function signal(action) {
 
 			var compactedFunc = null;
 
-			var // this is the function that does the actual dispatch of the 
-			baseDispatcher = function baseDispatcher(observers, dispatcher, action, prevState) {
+			// this is the function that does the actual dispatch of the 
+
+			var baseDispatchCallback = function baseDispatchCallback(observers, dispatcher, action, prevState) {
 
 				var title = void 0,
 				    stateArea = null;
@@ -1249,7 +1284,7 @@ var Dispatcher = function () {
 				return getAppState();
 			};
 
-			var boundBaseDispatcher = baseDispatcher.bind(null, observers, this);
+			var boundBaseDispatchCallback = baseDispatchCallback.bind(null, observers, this);
 
 			var adjoiner = {
 				/*createActionObject:function(_data, _type){
@@ -1263,7 +1298,7 @@ var Dispatcher = function () {
     },*/
 				createDispatchResolver: function createDispatchResolver(_action) {
 
-					return boundBaseDispatcher.bind(null, _action);
+					return boundBaseDispatchCallback.bind(null, _action);
 				}
 			};
 
@@ -1279,12 +1314,12 @@ var Dispatcher = function () {
 			if (_hasMiddleware) {
 
 				// collapse all middleware callbacks into a single callback
-				compactedFunc = this.middlewares.concat(boundBaseDispatcher).reduceRight(function (bound, middleware) {
+				compactedFunc = this.middlewares.concat(boundBaseDispatchCallback).reduceRight(function (bound, middleware) {
 					return middleware.bind(null, bound);
 				});
 			} else {
 
-				compactedFunc = boundBaseDispatcher;
+				compactedFunc = baseDispatchCallback;
 			}
 
 			// Pass this on to the event queue 
@@ -1409,26 +1444,9 @@ var getObjectPrototype = function getObjectPrototype(obj) {
 
 var eachStore = function eachStore(fn, extractor, storeArray) {
 
-	(0, _basics.each)(storeKeys, extractor.bind(storeArray = [], stores));
+	var dispatcher = getInstance();
 
-	var callable = fn;
-	var prevIndex = storeArray.length - 1;
-
-	var next = function next() {
-
-		var returnVal = void 0;
-
-		if (prevIndex >= 0) {
-			returnVal = Boolean(callable.call(null, storeArray[prevIndex--], next));
-		} else {
-			callable = !0;
-			returnVal = callable;
-		}
-
-		return returnVal;
-	};
-
-	next();
+	return dispatcher.iterateOnStore(fn, extractor, storeArray);
 };
 
 var createStoreInterface = function createStoreInterface(dispatcher, method) {
@@ -1460,13 +1478,19 @@ var createStoreInterface = function createStoreInterface(dispatcher, method) {
 
 				regFunc = dispatcher.getRegistration(title);
 
-				return regFunc.$$history.length ? regFunc.$$history[0] : null;
-			} else {
+				value = regFunc.$$history.length ? regFunc.$$history[0] : null;
+			} else if (typeof argument === 'string') {
 
-				value = value[title];
+				if (value instanceof Object) {
+
+					if (_basics.Hop.call(value, argument)) {
+
+						value = value[argument];
+					}
+				}
 			}
 
-			return typeof argument === 'string' && argument in value ? value[argument] : value;
+			return value;
 		}
 
 		if (method == 'destroy') {
@@ -1746,10 +1770,10 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
  * @desc: Implementation of Facebooks' Flux Architecture with a Twist. [ ES6 ]
  */
 
-function toString() {
+var toString = function toString() {
 
     return "[object RadixxHub]";
-}
+};
 
 var makeStore = function makeStore(dataTitle, registerCallback, defaultStateObj) {
 
@@ -1797,10 +1821,6 @@ var eachStore = function eachStore(callback) {
     }, null);
 };
 
-var _hub = {
-    eachStore: eachStore
-};
-
 var attachMiddleware = function attachMiddleware(callback) {
 
     return observable.setMiddlewareCallback(function () {
@@ -1823,6 +1843,19 @@ var onDispatch = function onDispatch(handler) {
     }
 };
 
+var requestAggregator = function requestAggregator() {
+
+    return observable.makeAggregator();
+};
+
+var _hub = {
+    eachStore: eachStore,
+    onDispatch: onDispatch,
+    isAppStateAutoRehydrated: isAppStateAutoRehydrated,
+    purgePersistentStorage: purgePersistentStorage,
+    toString: toString
+};
+
 var configure = function configure(config) {
 
     return observable.mergeConfig(config, _hub);
@@ -1836,11 +1869,6 @@ var onShutdown = function onShutdown(handler) {
             handler.apply(undefined, arguments);
         }, _hub);
     }
-};
-
-var requestAggregator = function requestAggregator() {
-
-    return observable.makeAggregator();
 };
 
 exports.Helpers = _helpers.Helpers;
@@ -2363,7 +2391,7 @@ var $createBeforeTearDownCallback = function $createBeforeTearDownCallback(confi
         // console.log('Node: '+ lastActivatedNode);
 
         __timeOutCallback.lock = __hasDeactivated = true;
-        beforeUnloadTimer = _basics.wind.setTimeout(__timeOutCallback, 0);
+        var beforeUnloadTimer = _basics.wind.setTimeout(__timeOutCallback, 0);
 
         if (isLogoff) {
             // IE/Firefox/Chrome 34+

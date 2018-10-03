@@ -133,14 +133,13 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 
 	    }else{
 	    	
-	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$history[0]));
+	    	newStoreState = fn.call(queueing, action, (area.get() || fn.$$initData));
 
-	    	coverageNotifier.$$historyLocation = null;
 
 	    }
 
-		if(typeof newStoreState == 'boolean'
-			|| newStoreState == undefined){
+		if(typeof newStoreState === 'boolean'
+			|| isNullOrUndefined(newStoreState)){
 			
 			throw new TypeError("Radixx: Application State unavailable after signal to Dispatcher");		
 
@@ -157,6 +156,8 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
     				;
 	    	}
 
+	    	coverageNotifier.$$withAction = true;
+
 	    	triggerEvt(
 					wind.document, 
 					'storesignal', 
@@ -171,13 +172,13 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 					wind
 			);
 
-	    	coverageNotifier.$$withAction = true;
-
 		    // add the new state to the history list and increment
 		    // the index to match in place
 		    len = fn.$$history.push(newStoreState); /* @TODO: use {action.actionType} as operation Annotation */
 		    
 		    fn.$$historyIndex++;
+
+		    coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 		    if(fn.$$history.length > 21){ // can't undo/redo (either way) more than 21 moves at any time
 
@@ -185,6 +186,8 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 		    }
 
 	    }else{
+
+	    	coverageNotifier.$$historyLocation = fn.$$historyIndex;
 
 	    	return newStoreState;
     	}
@@ -216,12 +219,16 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 		}
 	};
 
-	const getCurrentActionOnStack = () => {
+	const getActionOnStack = (index) => {
 
-		const actionStack = operationOnStoreSignal.$$redoActionsStack;
+		const actionsStack = operationOnStoreSignal.$$redoActionsStack;
 
-		if(actionStack.lenth){
-			return actionStack[actionStack.length - 1];
+		if(actionsStack.length){
+			if(typeof index !== 'number'){
+				return actionsStack[actionsStack.length - 1];
+			}else{
+				return actionsStack[index];
+			}
 		}
 
 		return null;
@@ -233,22 +240,24 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	    
         const _tag = coverageNotifier.$$tag;
 
-        if(arguments.callee.$$withAction === true){
-			currentAction = getCurrentActionOnStack();
-			arguments.callee.$$withAction = null;
+        if(coverageNotifier.$$withAction === true){
+			currentAction = getActionOnStack();
+			coverageNotifier.$$withAction = null;
+		}else{
+			currentAction = getActionOnStack(coverageNotifier.$$historyLocation);
 		}
 
         if(!isNullOrUndefined(_tag)
 			&& (persistStore !== null)){
 
 			persistStore.setItem(_tag, setNormalized({
-						state:appState, 
-						action:currentAction,
-						title:arguments.callee.$$currentStoreTitle, 
-						historyLoc:arguments.callee.$$historyLocation
+        			state:appState, 
+					action:currentAction,
+					title:coverageNotifier.$$currentStoreTitle, 
+					historyLoc:coverageNotifier.$$historyLocation
 			}));
 
-			arguments.callee.$$historyLocation = null;
+			coverageNotifier.$$historyLocation = null;
 		}
     };
 
@@ -298,18 +307,20 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	            for(var i=0; i < sessStore.length; i++){
 	                key = sessStore.key(i);
 	                _data = sessStore.getItem(key);
-	                
-	                if(!_data){
+
+	                if(typeof _data !== 'string' 
+	                		|| _data.length === 0){
 						observer = observers[key];
 						if(!!observer 
 							&& observer.$$history.length){
-							_data = setNormalized(observer.$$history[0]);
+							_data = observer.$$history[0];
+						
 						}else{
 							_data = null;
 						}
 					}
 
-					appStateData[key] = getNormalized(_data);
+					appStateData[key] = (typeof _data === 'string' ? getNormalized(_data) : _data);
 	            }
 	        }else{
 	        
@@ -332,15 +343,47 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 						observer = observers[key];
 						if(!!observer
 							&& observer.$$history.length){
-							_data = setNormalized(observer.$$history[0]);
+							_data = observer.$$history[0];
+						}else{
+							_data = null;
 						}
 					}
 
-					appStateData[key] = getNormalized(_data);
+					appStateData[key] = (typeof _data === 'string' ? getNormalized(_data) : _data);
 	            }
 	        }
 
 	        return appStateData;
+	};
+
+	const eachStore = function(fn, extractor, storeArray){
+
+		each(storeKeys, extractor.bind((storeArray = []), stores));
+
+        let callable = fn;
+        let prevIndex = storeArray.length - 1;
+
+        const next = () => {
+		
+			let returnVal;
+
+			if(prevIndex >= 0){	
+				returnVal = Boolean(
+					callable.call(
+							null, 
+							storeArray[prevIndex--], 
+							next
+					)
+				);
+			}else{
+				callable = !0;
+				returnVal = callable;
+			}
+
+			return returnVal;
+		};
+
+        next();
 	};
 
 	const handlePromises = () => {
@@ -364,8 +407,8 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 
 	const enforceCoverage = e => {
 
-        const _origin = arguments.callee.$$origin;
-        const _tag = arguments.callee.$$tag;
+        const _origin = enforceCoverage.$$origin;
+        const _tag = enforceCoverage.$$tag;
         let _action = null;
         let _state = null;
         let _title = null;
@@ -455,22 +498,17 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	    try{
 			    evt = d.createEvent( 'CustomEvent' );
 			    evt.initCustomEvent( event, params.bubbles, params.cancelable, params.detail );
-			}catch(e){
+		}catch(e){
 			    evt = d.createEventObject(w.event);
-				  evt.cancelBubble = !params.bubbles;
-	        evt.returnValue = !params.cancelable;
+			  	evt.cancelBubble = !params.bubbles;
+	        
+	        	evt.returnValue = !params.cancelable;
 				
 	        if(typeof params.detail === "object"){
-					    // set expando properties on event object
-					
-	            /*for(t in params.detail){
-	               if((({}).hasOwnProperty.call(params.detail, t))){
-	                 evt[t] = params.detail[t];
-	               }
-	            }*/
-					    evt.detail = params.detail;
-				  }	
-			}
+					    
+			    evt.detail = params.detail;
+		  	}	
+		}
 	    
 	    return evt;
 	}
@@ -511,7 +549,8 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	                    	data = getNormalized(persistStore.getItem(enforceCoverage.$$tag));
 			    	}
 			    
-			    	if(data instanceof Object 
+			    	if(data &&
+			    			(data instanceof Object)
 	                            && data.state){
 	                        setAppState(data.state);
 	                        this.updateAutoRehydrationState();
@@ -551,7 +590,8 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	            
 				/* 
 					In IE 8-9, writing to sessionStorage is done asynchronously (other browsers write synchronously)
-					we need to fix this by using IE proprietary methods 
+					we need to fix this by using IE proprietary methods
+
 					See: https://www.nczonline.net/blog/2009/07/21/introduction-to-sessionstorage/ 
 				*/
 
@@ -932,12 +972,18 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	            }, operationOnStoreSignal);
         }
 
+        iterateOnStore(...args){
+
+        	return eachStore(...args);
+        }
+
         signal(action) {
 
 	            let compactedFunc = null;
 
-	            const // this is the function that does the actual dispatch of the 
-	            baseDispatcher = (observers, dispatcher, action, prevState) => {
+	            // this is the function that does the actual dispatch of the 
+	            
+	            const baseDispatchCallback = (observers, dispatcher, action, prevState) => {
 
 						let title, stateArea = null; 
 
@@ -960,7 +1006,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 						return getAppState();
 				};
 
-	            const boundBaseDispatcher = baseDispatcher.bind(null, observers, this);
+	            const boundBaseDispatchCallback = baseDispatchCallback.bind(null, observers, this);
 
 	            const adjoiner = {
 	                    /*createActionObject:function(_data, _type){
@@ -974,7 +1020,7 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	                    },*/
 	                    createDispatchResolver(_action) {
 
-	                        return boundBaseDispatcher.bind(null, _action);
+	                        return boundBaseDispatchCallback.bind(null, _action);
 	                    }
 	            };
 
@@ -992,14 +1038,14 @@ const operationOnStoreSignal = (fn, queueing, area, action) => {
 	                
 	                // collapse all middleware callbacks into a single callback
 	                compactedFunc = this.middlewares.concat(
-	                                    boundBaseDispatcher
+	                                    boundBaseDispatchCallback
 	                                ).reduceRight((bound, middleware) => middleware.bind(null,
 	                    bound
 	                ));
 
 	            }else {
 
-	                compactedFunc = boundBaseDispatcher;
+	                compactedFunc = baseDispatchCallback;
 	            }
 
 	            // Pass this on to the event queue 
