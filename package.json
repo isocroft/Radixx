@@ -64,8 +64,8 @@
   "main": "./dist/radixx.cjs.min.js",
   "browser": "./dist/radixx.umd.js",
   "module": "./src/es/index.js",
-  "unpkg": "./dist/radixx.umd.min.js",
-  "jsdelivr": "./dist/radixx.umd.min.js",
+  "unpkg": "./dist/radixx.min.js",
+  "jsdelivr": "./dist/radixx.min.js",
   "readmeFilename": "README.md",
   "bugs": {
     "url": "https://github.com/isocroft/Radixx/issues"
