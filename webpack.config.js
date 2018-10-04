@@ -8,7 +8,7 @@ var libraryName = pkg.name, plugins = [], outputFile, mode;
 
 if (env === 'build') {
 
-  	outputFile = libraryName + '.umd.min.js';
+  	outputFile = libraryName + '.min.js';
   	mode = 'production';
 
 } else if(env === 'dev') {
