@@ -18,7 +18,7 @@
     "build": "./node_modules/.bin/webpack --progress --colors --env build && npm run test",
     "dev": "./node_modules/.bin/webpack --progress --colors --watch --env dev",
     "benchmark": "node benchmark.js",
-    "test": "karma start radixx.conf.js --single-run"
+    "test": "./node_modules/karma/bin/karma start radixx.conf.js --single-run"
   },
   "authors": [
     {
