@@ -12,7 +12,7 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'src/radixx.js' , 'tests/specs/*.js'
+      'dist/radixx.umd.js' , 'tests/specs/*.js'
     ],
 
     plugins: [
