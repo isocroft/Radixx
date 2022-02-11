@@ -39,7 +39,7 @@
     "jshint": "^2.9.4",
     "watchify": "^3.8.0",
     "jasmine-core": "^2.2.0",
-    "karma": "^2.0.0",
+    "karma": "^6.3.14",
     "karma-firefox-launcher": "^1.1.0",
     "karma-jasmine": "^1.1.1",
     "benchmark": "~1.0.0",
