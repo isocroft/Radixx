@@ -49,87 +49,87 @@ The footprint for **Radixx** is really small. With all it's functionality, it's 
 	;(function(w, r){
 
 		r.onDispatch(function(app_state){
-			/* fired when all synchronous/asynchronous 
-				mutations are completely done on the state */
-			console.log(JSON.stringify(app_state)); 
+		  /* fired when all synchronous/asynchronous 
+		  mutations are completely done on the state */
+		  console.log(JSON.stringify(app_state)); 
 		});
 
 		r.configure({
 			runtime:{ /* The feature/functionality that the {runtime} config controls is still EXPERIMENTAL */
 
 				spaMode:true, 
-							/* - {runtime.spaMode} 
+					/* - {runtime.spaMode} 
 
-								setup for whether or not you're building a SPA web app (e.g. using VueJS / ReactJS ) 
+						setup for whether or not you're building a SPA web app (e.g. using VueJS / ReactJS ) 
 
-								if {runtime.spaMode} is set to `false`, Radixx will automatically setup (internally) its
-								ASMLC [ Application State Management Life Cycle ] procedures.
+						if {runtime.spaMode} is set to `false`, Radixx will automatically setup (internally) its
+						ASMLC [ Application State Management Life Cycle ] procedures.
 
-								This ensures that you are able to be notified when the page is about to be unloaded
-							*/
+						This ensures that you are able to be notified when the page is about to be unloaded
+					*/
 				shutDownHref:'/'
-							/* - {runtime.shutDownHref}
+					/* - {runtime.shutDownHref}
 
-								makes it trivial to trigger the the shutdown callback/handler set by `Radixx.onShutdown`.
-								This config should be set to the value of the `href` or `data-href` attribute of a link or
-								button that triggers/signals the end of the web application session (e.g a logout button) 
-						
-							*/
+						makes it trivial to trigger the the shutdown callback/handler set by `Radixx.onShutdown`.
+						This config should be set to the value of the `href` or `data-href` attribute of a link or
+						button that triggers/signals the end of the web application session (e.g a logout button) 
+
+					*/
 			},
 			universalCoverage:true, 
-									/* - {universalCoverage}
-										
-										make store state changes in one tab available across browser tabs 
-										and update the state on the other tabs (pages) accordingly 
-									*/
+				/* - {universalCoverage}
+
+					make store state changes in one tab available across browser tabs 
+					and update the state on the other tabs (pages) accordingly 
+				*/
 			autoRehydrate:true, 	
-									/* - {autoRehydrate}
+				/* - {autoRehydrate}
 
-										automatically hydrate all stores with their respective state data 
-										upon config initialization so that your state is available to all
-										stores as soon as your components load without having to retrieve
-										data over the network. 
+					automatically hydrate all stores with their respective state data 
+					upon config initialization so that your state is available to all
+					stores as soon as your components load without having to retrieve
+					data over the network. 
 
-										Great for PWAs!! :)
-									*/
+					Great for PWAs!! :)
+				*/
 			persistenceEnabled:false, 
-									/* - {persistenceEnabled}
+				/* - {persistenceEnabled}
 
-										make your state change persist even after the browser is closed
+					make your state change persist even after the browser is closed
 
-										You don't need this config to persist state within the same browser
-										session (i.e. across page loads/refreshes).
+					You don't need this config to persist state within the same browser
+					session (i.e. across page loads/refreshes).
 
-										IMPORTANT: 
-											Once {universalCoverage} is set to `true`, 
-											the value of {persistenceEnabled} is automatically set to `true` 
-									 */
+					IMPORTANT: 
+						Once {universalCoverage} is set to `true`, 
+						the value of {persistenceEnabled} is automatically set to `true` 
+				 */
 			localHostDev:true 		
-									/* - {localHostDev}
+				/* - {localHostDev}
 
-										Works as a helper config that's used with {universalCoverage} for when [Radixx] is
-										used in a 'localhost' developement environment. If Radixx is used in a production app,
-										set this config to `false`.
+					Works as a helper config that's used with {universalCoverage} for when [Radixx] is
+					used in a 'localhost' developement environment. If Radixx is used in a production app,
+					set this config to `false`.
 
-										Whenever this config is set to `true`, it's important an 'id' attribute on the <html>
-										tag with a unique value.  
-									*/
+					Whenever this config is set to `true`, it's important an 'id' attribute on the <html>
+					tag with a unique value.  
+				*/
 		});
 
 		var registeredStores = [];
 		
 		/* 
-			creating action creators - [ multiple actions can be created for a real-life application ]
+		  creating action creators - [ multiple actions can be created for a real-life application ]
 		*/
 		w.action_creators = r.makeActionCreators({
-				loadTodos:{
-					type:'LOAD_TODOS',
-					actionDefinition:Radixx.Payload.type.array /* Filter & Validate action data as `array` for every dispatch */
-				},
-				saveTodo:{
-					type:'SAVE_TODO',
-					actionDefinition:Radixx.Payload.type.object /* Filter & Validate action data as `object` for every dispatch */
-				}	
+			loadTodos:{
+				type:'LOAD_TODOS',
+				actionDefinition:Radixx.Payload.type.array /* Filter & Validate action data as `array` for every dispatch */
+			},
+			saveTodo:{
+				type:'SAVE_TODO',
+				actionDefinition:Radixx.Payload.type.object /* Filter & Validate action data as `object` for every dispatch */
+			}	
 	 	});
 
 	 	/*
@@ -666,7 +666,7 @@ These are methods defined on the store object from **Radixx.makeStore( ... )** c
 
 Hers's how **Redux** is simply described
 
-> Redux is basically event-sourcing where there is a single projection to consume the application state (think CQRS - Command Query Responsibilty Segregation).
+> Redux is basically event-sourcing where there is a single projection to consume the application state.
 
 Someone had this to say about the state of **Redux** single store
 
@@ -687,7 +687,7 @@ Same applies to Radixx
 - A sizable amount of boilerplate code (especially with **connect()** and/or **mapStateToProps()** from _react-redux_ project library) is required to get Redux up and running.
 - Dynamically structured state is impossible. (mature, complex apps need this the most).
 - Increased probability of state key(s) collisions between reducers (very likely in a big complex web app but highly unlikely in samll ones).
-- Global variables are always a bad thing (This applies to the composition of the Redux application state itself) as you could `clobber` them unknowingly.
+- Global variables are most times a bad thing (This applies to the composition of the Redux application state itself) as you could `clobber` them unknowingly.
 - Performance suffers as your state tree gets larger (Immutability is a good thing...sometimes).
 - Each time the **connect()** decorator is called, it pulls in the entire application state (when using _react-redux_ project library).
 
@@ -1232,7 +1232,7 @@ angular.module("appy.todos", [
 
 
  	/*!
- 	 *	When using Radixx with ReactJS, There are few things you should be aware of.
+ 	 *When using Radixx with ReactJS, There are few things you should be aware of.
  	 * 
  	 *
  	 * ReactJS and Radixx are not opinionated. This can make it tricky
@@ -1283,7 +1283,7 @@ angular.module("appy.todos", [
 		'removeShoe':{
 				type:'REMOVE_SHOE',
 				actionDefinition:Radixx.Payload.type.numeric.Int
-		}
+		},
 		'addShoe':{
 				type:'ADD_SHOE',
 				actionDefinition:Radixx.Payload.type.object
